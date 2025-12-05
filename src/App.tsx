@@ -10,7 +10,13 @@ import ModuleDetail from "./pages/ModuleDetail";
 import Forum from "./pages/Forum";
 import Gamification from "./pages/Gamification";
 import Dashboard from "./pages/Dashboard";
+import Register from "./pages/register";
+import Login from "./pages/login";
 import NotFound from "./pages/NotFound";
+import { AuthProvider } from "@/context/AuthContext";
+import Protected from "./components/Protected";
+
+
 
 const queryClient = new QueryClient();
 
@@ -19,21 +25,33 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/modules" element={<Modules />} />
-            <Route path="/module/:moduleId" element={<ModuleDetail />} />
-            <Route path="/forum" element={<Forum />} />
-            <Route path="/gamification" element={<Gamification />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
-      </BrowserRouter>
+
+      <AuthProvider>
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/modules" element={<Modules />} />
+
+
+              {/* Protected Routes */}
+              <Route path="/module/:moduleId" element={<Protected><ModuleDetail /></Protected>} />
+              <Route path="/forum" element={<Protected><Forum /></Protected>} />
+              <Route path="/gamification" element={<Protected><Gamification /></Protected>} />
+              <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
+      </AuthProvider>
+
     </TooltipProvider>
   </QueryClientProvider>
 );
+
 
 export default App;

@@ -190,7 +190,7 @@ const Dashboard = () => {
             <Card className="border-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-2xl">
-                  <BarChart className="w-6 h-6" />
+                  <BarChart className="w-6 h-12" />
                   This Week's Activity
                 </CardTitle>
                 <CardDescription>Hours spent learning each day</CardDescription>
@@ -228,7 +228,7 @@ const Dashboard = () => {
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-8">
             {/* Recommended Actions */}
-            <Card className="border-2 sticky top-24">
+            <Card className="border-2 ">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="w-5 h-5" />

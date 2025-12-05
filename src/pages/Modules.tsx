@@ -155,7 +155,7 @@ const Modules = () => {
                 {/* Action Button */}
                 <Link to={`/module/${module.id}`}>
                   <Button
-                    className="w-full"
+                    className="w-full mt-2"
                     disabled={module.status === "locked"}
                     variant={module.status === "completed" ? "outline" : "default"}
                   >

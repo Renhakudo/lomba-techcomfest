@@ -1,23 +1,41 @@
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Trophy, MessageSquare, BookOpen, LayoutDashboard } from "lucide-react";
+import {
+  Menu,
+  X,
+  Trophy,
+  MessageSquare,
+  BookOpen,
+  LayoutDashboard
+} from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
+
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user } = useAuth();   // <-- cek user login
 
-  const navLinks = [
-    { to: "/", label: "Home", icon: null },
+  const publicLinks = [
+    { to: "/modules", label: "Modules", icon: BookOpen },
+  ];
+
+  const privateLinks = [
     { to: "/modules", label: "Modules", icon: BookOpen },
     { to: "/forum", label: "Forum", icon: MessageSquare },
     { to: "/gamification", label: "Achievements", icon: Trophy },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ];
 
+  const navLinks = user ? privateLinks : publicLinks;
+
+
   return (
     <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
+
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-2 text-2xl font-bold">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center text-white shadow-glow">
@@ -43,11 +61,18 @@ const Navigation = () => {
             ))}
           </div>
 
-          {/* CTA Button */}
+          {/* Desktop CTA Button */}
           <div className="hidden md:block">
-            <Button className="btn-gradient-primary shadow-md hover:shadow-glow transition-all">
-              Get Started
-            </Button>
+                        {user ? (
+              <Button onClick={() => supabase.auth.signOut()}>
+                Logout
+              </Button>
+            ) : (
+              <NavLink to="/login">
+                <Button>Login</Button>
+              </NavLink>
+            )}
+
           </div>
 
           {/* Mobile Menu Button */}
@@ -63,6 +88,8 @@ const Navigation = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-border animate-fade-in">
             <div className="flex flex-col gap-3">
+
+              {/* Mobile nav links */}
               {navLinks.map((link) => (
                 <NavLink
                   key={link.to}
@@ -75,9 +102,13 @@ const Navigation = () => {
                   {link.label}
                 </NavLink>
               ))}
-              <Button className="btn-gradient-primary mt-2 shadow-md">
-                Get Started
-              </Button>
+
+              {/* Mobile CTA Button → Register */}
+              <NavLink to="/register" onClick={() => setIsMenuOpen(false)}>
+                <Button className="btn-gradient-primary mt-2 shadow-md w-full">
+                  Get Started
+                </Button>
+              </NavLink>
             </div>
           </div>
         )}

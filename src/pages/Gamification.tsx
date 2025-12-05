@@ -113,7 +113,7 @@ const Gamification = () => {
               <div className="text-4xl font-bold text-orange-500 mb-1">
                 {userStats.streak}
               </div>
-              <div className="text-sm text-muted-foreground">Day Streak 🔥</div>
+              <div className="text-sm text-muted-foreground">Day Streak</div>
             </CardContent>
           </Card>
         </div>
