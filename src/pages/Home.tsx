@@ -1,3 +1,7 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Users, MessageCircle, Lightbulb, Clock, Star, TrendingUp, Award } from "lucide-react";
@@ -5,6 +9,30 @@ import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
 
 const Home = () => {
+  const navigate = useNavigate();
+
+  // cek status login
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // jika user sudah login, redirect ke dashboard
+        navigate("/modules");
+      }
+    };
+
+    checkUser();
+
+    // optional: subscribe perubahan login
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) navigate("/dashboard");
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [navigate]);
+
   const modules = [
     {
       icon: MessageCircle,

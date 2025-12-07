@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient"; // pastikan path sesuai
+import { supabase } from "@/lib/supabaseClient";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -15,33 +15,65 @@ const Register = () => {
     setLoading(true);
     setErrorMsg("");
 
-    const { error } = await supabase.auth.signUp({
+    // 1️⃣ SIGN UP USER
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    setLoading(false);
+    console.log("SIGNUP RESULT:", signUpData, signUpError);
 
-    if (error) {
-      setErrorMsg(error.message);
+    if (signUpError) {
+      setErrorMsg(signUpError.message);
+      setLoading(false);
+      return;
+    }
+
+    const user = signUpData.user;
+    if (!user) {
+      setErrorMsg("Registrasi gagal. Coba lagi.");
+      setLoading(false);
+      return;
+    }
+
+    // 2️⃣ INSERT PROFILE DEFAULT
+    const { error: profileErr } = await supabase.from("profiles").insert({
+      id: user.id,
+      name: email.split("@")[0],
+      avatar_url: null,
+      level: 1,
+      total_points: 0,
+      completed_modules: 0,
+      total_modules: 0,
+      streak: 0,
+    });
+
+    console.log("PROFILE INSERT RESULT:", profileErr);
+
+    if (profileErr) {
+      setErrorMsg(profileErr.message);
     } else {
       alert("Registration success! Cek email untuk verifikasi.");
     }
+
+    setLoading(false);
   };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: window.location.origin + "/dashboard",
       },
     });
-    setLoading(false);
 
     if (error) {
       setErrorMsg(error.message);
     }
+
+    setLoading(false);
   };
 
   return (
