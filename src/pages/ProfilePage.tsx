@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Camera } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 
 export default function EditProfile() {
@@ -14,20 +15,20 @@ export default function EditProfile() {
 
   async function loadProfile() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      if (error) throw error;
-
       setProfile(data);
-      setName(data.name || "");
-      setUsername(data.username || "");
+      setName(data?.name || "");
+      setUsername(data?.username || "");
     } catch (err) {
       console.error(err);
     } finally {
@@ -41,131 +42,137 @@ export default function EditProfile() {
       const file = e.target.files[0];
       if (!file) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = fileName;
+      const ext = file.name.split(".").pop();
+      const fileName = `${user.id}-${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, file, { upsert: true });
+        .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: publicUrlData } = supabase.storage
+      const { data: img } = supabase.storage
         .from("avatars")
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
-      const { error: updateError } = await supabase
+      await supabase
         .from("profiles")
-        .update({ avatar_url: publicUrlData.publicUrl })
+        .update({ avatar_url: img.publicUrl })
         .eq("id", user.id);
 
-      if (updateError) throw updateError;
-
-      setProfile({ ...profile, avatar_url: publicUrlData.publicUrl });
-      alert("Avatar updated!");
+      setProfile({ ...profile, avatar_url: img.publicUrl });
     } catch (err) {
       console.error(err);
-      alert("Failed to upload avatar");
     } finally {
       setUploading(false);
     }
   }
 
   async function updateProfile() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          name,
-          username,
-        })
-        .eq("id", user.id);
+    await supabase
+      .from("profiles")
+      .update({ name, username })
+      .eq("id", user.id);
 
-      if (error) throw error;
-
-      alert("Profile updated successfully!");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update profile");
-    }
+    alert("Profile updated!");
   }
 
-  if (loading) return <p className="text-center mt-10">Loading profile...</p>;
+  if (loading) return <p className="text-center mt-10">Loading...</p>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">Edit Profile</h1>
+    <div className="min-h-screen bg-[#f8f9fc] pt-16 px-6 relative overflow-hidden">
+      {/* Decorative lights */}
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-300/20 blur-[140px] rounded-full -z-10" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-purple-300/20 blur-[150px] rounded-full -z-10" />
 
-        <div className="bg-white shadow-md rounded-xl p-6 border">
-          
-          {/* Avatar */}
-          <div className="flex flex-col items-center mb-6">
+      {/* Header */}
+      <div className="text-center mb-10">
+        <h1 className="text-4xl font-bold text-gray-900">Edit Profile</h1>
+        <p className="text-gray-500 mt-2 text-lg">
+          Manage your personal information
+        </p>
+      </div>
+
+      {/* Card */}
+      <div className="max-w-2xl mx-auto bg-white/70 backdrop-blur-xl border border-gray-300/40 shadow-xl rounded-3xl p-10">
+        {/* Avatar */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="relative group">
             <img
               src={profile?.avatar_url || "/default-avatar.png"}
-              alt="avatar"
-              className="w-32 h-32 rounded-full object-cover border shadow-sm"
+              className="w-40 h-40 rounded-full object-cover shadow-xl border
+              transition-all group-hover:scale-105 group-hover:shadow-2xl"
             />
 
-            <label className="mt-4 cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm border transition">
-              {uploading ? "Uploading..." : "Change Photo"}
+            {/* Glow */}
+            <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-2xl -z-10"></div>
+
+            {/* Camera Button */}
+            <label
+              className="absolute bottom-2 right-2 bg-white p-3 rounded-full shadow-md cursor-pointer
+              hover:bg-gray-100 transition flex items-center justify-center"
+            >
+              <Camera size={20} className="text-gray-700" />
               <input
+                hidden
                 type="file"
                 accept="image/*"
                 onChange={uploadAvatar}
-                hidden
               />
             </label>
           </div>
+        </div>
 
-          {/* Form */}
-          <div className="space-y-5">
-
-            {/* Name */}
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">
-                Name
-              </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Your name"
-              />
-            </div>
-
-            {/* Username */}
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">
-                Username
-              </label>
-              <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="@username"
-              />
-            </div>
+        {/* Form */}
+        <div className="space-y-6">
+          {/* Full Name */}
+          <div className="relative">
+            <label className="block font-medium text-gray-700 mb-2">
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full p-3 rounded-xl border border-gray-300 bg-white/70
+              focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+              placeholder="Your full name"
+            />
           </div>
 
-          {/* Buttons */}
-          <div className="flex justify-end gap-4 mt-6">
-            <button className="px-5 py-2 rounded-lg border bg-gray-100 hover:bg-gray-200 transition">
-              Cancel
-            </button>
-            <button
-              onClick={updateProfile}
-              className="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow"
-            >
-              Save Changes
-            </button>
+          {/* Username */}
+          <div className="relative">
+            <label className="block font-medium text-gray-700 mb-2">
+              Username
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full p-3 rounded-xl border border-gray-300 bg-white/70
+              focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none"
+              placeholder="Your username"
+            />
           </div>
+        </div>
 
+        {/* Buttons */}
+        <div className="flex justify-end mt-10">
+          <button
+            onClick={updateProfile}
+            className="px-8 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600
+            text-white font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+          >
+            Save Changes
+          </button>
         </div>
       </div>
     </div>

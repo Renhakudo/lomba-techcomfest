@@ -3,8 +3,6 @@ import { Button } from "@/components/ui/button";
 import {
   Menu,
   X,
-  Trophy,
-  MessageSquare,
   BookOpen,
   LayoutDashboard
 } from "lucide-react";
@@ -12,27 +10,26 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 
-
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user } = useAuth();   // <-- cek user login
 
   const publicLinks = [
-    { to: "/modules", label: "Modules", icon: BookOpen },
   ];
 
   const privateLinks = [
     { to: "/modules", label: "Modules", icon: BookOpen },
-    { to: "/forum", label: "Forum", icon: MessageSquare },
-    { to: "/gamification", label: "Achievements", icon: Trophy },
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ];
 
   const navLinks = user ? privateLinks : publicLinks;
 
-
   return (
-    <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border shadow-sm">
+    // PERUBAHAN DISINI:
+    // 'fixed': Membuat navbar mengambang di atas konten (tidak punya section sendiri).
+    // 'top-0 left-0 w-full': Memastikan posisi di paling atas dan lebar penuh.
+    // 'bg-card/80 backdrop-blur-lg': Memberikan efek transparan agar konten di belakangnya terlihat samar.
+    <nav className="fixed top-0 left-0 w-full z-50 bg-card/80 backdrop-blur-lg border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
 
@@ -63,7 +60,7 @@ const Navigation = () => {
 
           {/* Desktop CTA Button */}
           <div className="hidden md:block">
-                        {user ? (
+            {user ? (
               <Button onClick={() => supabase.auth.signOut()}>
                 Logout
               </Button>
@@ -72,7 +69,6 @@ const Navigation = () => {
                 <Button>Login</Button>
               </NavLink>
             )}
-
           </div>
 
           {/* Mobile Menu Button */}
@@ -86,7 +82,7 @@ const Navigation = () => {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border animate-fade-in">
+          <div className="md:hidden py-4 border-t border-border animate-fade-in bg-card/95 backdrop-blur-xl">
             <div className="flex flex-col gap-3">
 
               {/* Mobile nav links */}
@@ -103,12 +99,28 @@ const Navigation = () => {
                 </NavLink>
               ))}
 
-              {/* Mobile CTA Button → Register */}
-              <NavLink to="/register" onClick={() => setIsMenuOpen(false)}>
-                <Button className="btn-gradient-primary mt-2 shadow-md w-full">
-                  Get Started
-                </Button>
-              </NavLink>
+              {/* Mobile CTA Button Logic */}
+              <div className="px-4 mt-2">
+                {user ? (
+                  <Button 
+                    variant="destructive" 
+                    className="w-full shadow-md"
+                    onClick={() => {
+                        supabase.auth.signOut();
+                        setIsMenuOpen(false);
+                    }}
+                  >
+                    Logout
+                  </Button>
+                ) : (
+                  <NavLink to="/register" onClick={() => setIsMenuOpen(false)}>
+                    <Button className="btn-gradient-primary w-full shadow-md">
+                      Get Started
+                    </Button>
+                  </NavLink>
+                )}
+              </div>
+
             </div>
           </div>
         )}

@@ -25,18 +25,18 @@ const Login = () => {
     if (error) {
       setErrorMsg(error.message);
     } else {
-      // redirect manual karena kamu tidak pakai router
       window.location.href = "/dashboard";
     }
   };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+    setErrorMsg("");
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin + "/dashboard",
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

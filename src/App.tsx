@@ -1,5 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import AuthCallback from "./pages/AuthCallback";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -7,8 +7,6 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Modules from "./pages/Modules";
 import ModuleDetail from "./pages/ModuleDetail";
-import Forum from "./pages/Forum";
-import Gamification from "./pages/Gamification";
 import Dashboard from "./pages/Dashboard";
 import Register from "./pages/register";
 import Login from "./pages/login";
@@ -17,7 +15,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import Protected from "./components/Protected";
 import ProfilePage from "./pages/ProfilePage";
 import LessonDetail from "./pages/LessonDetail";
-import ForumChat from "./pages/ForumChat";
+import PreTest from "./pages/PreText";
+import AIAssistant from "./pages/AIAssistent";
 
 
 
@@ -27,7 +26,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
 
       <AuthProvider>
         <BrowserRouter>
@@ -35,20 +33,18 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/modules" element={<Modules />} />
-
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/aiassistent" element={<AIAssistant />} />
 
               {/* Protected Routes */}
               <Route path="/module/:moduleId" element={<Protected><ModuleDetail /></Protected>} />
               <Route path="/module/:moduleId/lesson/:lessonId" element={<LessonDetail />} />
-              <Route path="/forum" element={<Protected><Forum /></Protected>} />
-              <Route path="/gamification" element={<Protected><Gamification /></Protected>} />
               <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/profilepage" element={<ProfilePage />} />
               <Route path="*" element={<NotFound />} />
-              <Route path="/ForumChat/:id"element={<Protected><ForumChat /></Protected>}
-              />
+              <Route path="/module/:moduleId/pre-test" element={<Protected><PreTest/></Protected>} />
             </Routes>
           </Layout>
         </BrowserRouter>

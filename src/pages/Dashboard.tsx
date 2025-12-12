@@ -2,16 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
-import {
-  BarChart,
-  Calendar,
-  TrendingUp,
-  BookOpen,
-  Trophy,
-} from "lucide-react";
+import { Calendar, TrendingUp, BookOpen, MessageCircle } from "lucide-react";
 
 interface ModuleProgress {
   id: string;
@@ -21,29 +14,35 @@ interface ModuleProgress {
   progress: number;
 }
 
-interface WeeklyActivity {
-  day: string;
-  hours: number;
-}
+// interface WeeklyActivity {
+//   day: string;
+//   hours: number;
+// }
 
-interface Achievement {
-  name: string;
-  date: string;
-  icon: string;
-}
+// interface Achievement {
+//   name: string;
+//   date: string;
+//   icon: string;
+// }
+
+const moduleColors: Record<string, string> = {
+  "1": "#4d97f3",
+  "2": "#4dbf72",
+  "3": "#fcba03",
+  "4": "#ff6b6b",
+};
 
 const Dashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [modulesProgress, setModulesProgress] = useState<ModuleProgress[]>([]);
-  const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivity[]>([]);
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  // const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivity[]>([]); 
+  // const [achievements, setAchievements] = useState<Achievement[]>([]); 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboard = async () => {
       setLoading(true);
       try {
-        // Ambil user
         const { data: authData } = await supabase.auth.getUser();
         const user = authData?.user;
         if (!user) {
@@ -51,7 +50,6 @@ const Dashboard = () => {
           return;
         }
 
-        // Ambil profile
         const { data: profileData } = await supabase
           .from("profiles")
           .select("*")
@@ -59,45 +57,36 @@ const Dashboard = () => {
           .single();
         setProfile(profileData);
 
-        // Ambil modules
         const { data: modulesData } = await supabase
           .from("modules")
           .select("id, title, lessons(id)")
           .order("id", { ascending: true });
 
-        // Ambil completed lessons dari profile
-        const completedLessons: Record<string, number[]> = profileData?.completed_lessons || {};
+        const completedLessons: Record<string, number[]> =
+          profileData?.completed_lessons || {};
 
-        // Hitung progress per module
-        const modulesWithProgress: ModuleProgress[] = (modulesData || []).map((mod: any) => {
-          const totalLessons = mod.lessons?.length || 0;
-          const completedCount = completedLessons[mod.id]?.length || 0;
-          const progress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
-          return {
-            id: mod.id,
-            title: mod.title,
-            lessons_count: totalLessons,
-            completed: completedCount,
-            progress,
-          };
-        });
+        const modulesWithProgress: ModuleProgress[] = (modulesData || []).map(
+          (mod: any) => {
+            const totalLessons = mod.lessons?.length || 0;
+            const completedCount = completedLessons[mod.id]?.length || 0;
+            const progress =
+              totalLessons > 0
+                ? Math.round((completedCount / totalLessons) * 100)
+                : 0;
+
+            return {
+              id: mod.id,
+              title: mod.title,
+              lessons_count: totalLessons,
+              completed: completedCount,
+              progress,
+            };
+          }
+        );
+
         setModulesProgress(modulesWithProgress);
 
-        // Weekly activity
-        const { data: activityData } = await supabase
-          .from("user_activity")
-          .select("day, hours")
-          .eq("user_id", user.id);
-        setWeeklyActivity(activityData || []);
-
-        // Achievements / Badges
-        const { data: badgesData } = await supabase
-          .from("user_badges")
-          .select("name, date, icon")
-          .eq("user_id", user.id)
-          .order("date", { ascending: false })
-          .limit(5);
-        setAchievements(badgesData || []);
+        // Fetch activity & badges kept if needed later
       } catch (err) {
         console.error(err);
       } finally {
@@ -108,33 +97,103 @@ const Dashboard = () => {
     fetchDashboard();
   }, []);
 
-  const Skeleton = ({ className }: { className: string }) => (
-    <div className={`bg-gray-200 animate-pulse rounded ${className}`} />
-  );
-
   const getDayStreak = () => {
     if (!profile?.created_at) return 1;
     const createdAt = new Date(profile.created_at);
     const now = new Date();
     const diffTime = now.getTime() - createdAt.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  if (!profile) return <div className="p-8 text-center">Profile not found.</div>;
+  const modulesDoneCount = modulesProgress.filter(
+    (m) => m.progress === 100
+  ).length;
 
-  const maxHours = Math.max(...weeklyActivity.map((d) => d.hours), 1);
+  const modulesTotal = modulesProgress.length;
+  const overallPercent =
+    modulesTotal > 0 ? Math.round((modulesDoneCount / modulesTotal) * 100) : 0;
 
+  // --- SKELETON LOADING STATE ---
+  if (loading) {
+    return (
+      <div className="flex bg-gray-50 min-h-screen">
+        {/* Skeleton Sidebar */}
+        <div className="bg-white border-r hidden md:block w-[360px] fixed left-0 top-0 h-screen overflow-y-auto p-6 pt-24 pb-10 z-10">
+          <Card className="w-full shadow-md border rounded-2xl p-6">
+            <div className="flex flex-col items-center animate-pulse">
+              {/* Avatar Skeleton */}
+              <div className="w-28 h-28 rounded-full bg-gray-200" />
+              
+              {/* Name & Username Skeleton */}
+              <div className="mt-4 h-8 w-48 bg-gray-200 rounded" />
+              <div className="mt-2 h-4 w-32 bg-gray-200 rounded" />
+
+              {/* Stats Skeleton */}
+              <div className="mt-6 w-full space-y-4">
+                <div className="flex justify-between">
+                  <div className="h-4 w-16 bg-gray-200 rounded" />
+                  <div className="h-4 w-8 bg-gray-200 rounded" />
+                </div>
+                <div className="flex justify-between">
+                  <div className="h-4 w-32 bg-gray-200 rounded" />
+                  <div className="h-4 w-12 bg-gray-200 rounded" />
+                </div>
+              </div>
+
+              {/* Buttons Skeleton */}
+              <div className="mt-6 w-full space-y-3">
+                <div className="h-10 w-full bg-gray-200 rounded" />
+                <div className="h-10 w-full bg-gray-200 rounded" />
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Skeleton Right Content */}
+        <div className="flex-1 md:ml-[360px] p-6 pt-24 pb-6 flex flex-col gap-6 md:h-screen md:overflow-hidden h-auto">
+          {/* Top Stats Skeleton */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-shrink-0">
+             {/* Card 1 Skeleton */}
+            <div className="h-[200px] rounded-3xl bg-gray-200 animate-pulse" />
+             {/* Card 2 Skeleton */}
+            <div className="h-[200px] rounded-3xl bg-gray-200 animate-pulse" />
+          </div>
+
+          {/* List Skeleton */}
+          <Card className="shadow-md border rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden">
+            <CardHeader className="bg-white z-20 border-b pb-4 pt-6 px-6 flex-shrink-0">
+               <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+            </CardHeader>
+            <CardContent className="p-6 space-y-4 overflow-y-hidden">
+               {/* List Items Skeleton (3 items) */}
+               {[1, 2, 3].map((i) => (
+                 <div key={i} className="h-24 w-full bg-gray-100 rounded-xl animate-pulse" />
+               ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile)
+    return <div className="p-8 text-center">Profile not found.</div>;
+
+  // --- MAIN CONTENT ---
   return (
-    <div className="flex bg-gray-50 h-screen max-h-screen overflow-hidden">
-      {/* LEFT PROFILE */}
-      <div className="bg-white shadow-xl border p-6 pt-20 rounded-none w-full md:w-[360px] md:fixed md:left-0 md:top-0 md:h-screen md:overflow-hidden">
+    <div className="flex bg-gray-50 min-h-screen">
+      
+      {/* --- SIDEBAR --- */}
+      <div className="bg-white border-r hidden md:block w-[360px] fixed left-0 top-0 h-screen overflow-y-auto p-6 pt-24 pb-10 z-10">
         <Card className="w-full shadow-md border rounded-2xl p-6">
           <div className="flex flex-col items-center">
             <Avatar className="w-28 h-28">
               {profile.avatar_url ? (
-                <AvatarImage src={profile.avatar_url} className="object-cover" referrerPolicy="no-referrer" />
+                <AvatarImage
+                  src={profile.avatar_url}
+                  className="object-cover"
+                  referrerPolicy="no-referrer"
+                />
               ) : (
                 <AvatarFallback className="bg-primary text-white text-4xl">
                   {profile.name?.[0]?.toUpperCase() || "U"}
@@ -142,26 +201,20 @@ const Dashboard = () => {
               )}
             </Avatar>
 
-            <h1 className="mt-4 text-2xl font-bold">{profile.name}</h1>
+            <h1 className="mt-4 text-2xl font-bold text-center">
+              {profile.name}
+            </h1>
             <p className="text-gray-500 text-sm">@{profile.username}</p>
 
-            <div className="mt-3 px-4 py-1 text-sm rounded-full bg-blue-600 text-white shadow">
-              Level {profile.level ?? 1}
-            </div>
-
-            <div className="mt-6 w-full space-y-4">
-              <div className="flex justify-between text-sm">
-                <span>Total Points</span>
-                <span className="font-semibold">{profile.total_points ?? 0}</span>
-              </div>
-              <div className="flex justify-between text-sm">
+            <div className="mt-6 w-full space-y-4 text-sm">
+              <div className="flex justify-between">
                 <span>Streak</span>
                 <span className="font-semibold">{getDayStreak()} 🔥</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between">
                 <span>Modules Completed</span>
                 <span className="font-semibold">
-                  {modulesProgress.filter((m) => m.progress === 100).length}/{modulesProgress.length}
+                  {modulesDoneCount}/{modulesTotal}
                 </span>
               </div>
             </div>
@@ -170,132 +223,207 @@ const Dashboard = () => {
               <Link to="/modules">
                 <Button className="w-full">Continue Learning</Button>
               </Link>
-            <div className="mt-6 w-full space-y-3">
+
               <Link to="/profilepage">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full mt-3">
                   Edit Profile
                 </Button>
               </Link>
-            </div>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* RIGHT CONTENT */}
-      <div className="flex-1 md:ml-[360px] overflow-y-scroll p-6 space-y-8 max-h-screen">
-        {/* Stats Row */}
-        <div className="grid sm:grid-cols-3 gap-6">
-          <Card className="p-5 shadow-md border rounded-2xl">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
+      {/* --- RIGHT CONTENT --- */}
+      <div className="flex-1 md:ml-[360px] p-6 pt-24 pb-6 flex flex-col gap-6 md:h-screen md:overflow-hidden h-auto">
+        
+        {/* TOP STATS CARDS */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-shrink-0">
+          {/* Module Progress Card (Blue) */}
+          <div
+            className="rounded-3xl overflow-hidden shadow-lg bg-gradient-to-br from-[#4a90e2] to-[#50c9ce]
+             transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-200/50 hover:-translate-y-1"
+          >
+            <div className="p-6 flex items-center gap-6">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner">
+                <BookOpen className="w-7 h-7 text-white" />
               </div>
-              <div>
-                <p className="text-3xl font-bold text-primary">
-                  {modulesProgress.filter((m) => m.progress === 100).length}/{modulesProgress.length}
+
+              <div className="flex-1 text-white">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-extrabold">
+                    {modulesDoneCount}/{modulesTotal}
+                  </span>
+                  <span className="text-sm opacity-90">Modules Done</span>
+                </div>
+
+                <p className="text-xs opacity-90 mt-1">
+                  Overall completion: {overallPercent}%
                 </p>
-                <p className="text-sm text-gray-500">Modules Done</p>
-              </div>
-            </div>
-          </Card>
 
-          <Card className="p-5 shadow-md border rounded-2xl">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-white" />
+                <div className="mt-4 bg-white/30 rounded-full h-2 w-full overflow-hidden backdrop-blur-sm">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${overallPercent}%`,
+                      background: "linear-gradient(90deg,#A2D2FF,#CDB4DB)",
+                    }}
+                  />
+                </div>
               </div>
-              <div>
-                <p className="text-3xl font-bold text-secondary">{achievements.length}</p>
-                <p className="text-sm text-gray-500">Badges</p>
-              </div>
-            </div>
-          </Card>
 
-          <Card className="p-5 shadow-md border rounded-2xl">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-orange-500">{getDayStreak()} 🔥</p>
-                <p className="text-sm text-gray-500">Day Streak</p>
+              <div className="text-right text-white/90 text-xs">
+                <div className="font-semibold">{overallPercent}%</div>
+                <div className="opacity-80">Progress</div>
               </div>
             </div>
-          </Card>
+
+            <Link to="/modules">
+              <div className="bg-white/10 backdrop-blur-md p-3 text-xs text-gray-100 text-center cursor-pointer hover:bg-white/20 transition-colors">
+                Klik untuk melihat modul atau lanjutkan belajar.
+              </div>
+            </Link>
+          </div>
+
+          {/* Streak Card (Orange) */}
+          <div
+            className="rounded-3xl overflow-hidden shadow-lg bg-gradient-to-br from-[#ff8a3d] to-[#ff7f50]
+             transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-200/50 hover:-translate-y-1"
+          >
+            <div className="p-6 flex items-center gap-6">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner">
+                <Calendar className="w-7 h-7 text-white" />
+              </div>
+
+              <div className="flex-1 text-white">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-extrabold">
+                    {getDayStreak()} 🔥
+                  </span>
+                  <span className="text-sm opacity-90">Day Streak</span>
+                </div>
+
+                <p className="text-xs opacity-90 mt-1">
+                  Great job! teruskan kebiasaan belajarmu.
+                </p>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] bg-white/30 backdrop-blur-md px-3 py-1 rounded-full">
+                    +1 hari jika belajar hari ini
+                  </span>
+                  <span className="text-[11px] bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
+                    Target: 10 hari
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-right text-white/90 text-xs">
+                <div className="font-semibold">Streak</div>
+                <div className="opacity-80">Keep it up!</div>
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md p-3 text-xs text-gray-100 text-center cursor-default">
+              Tetap konsisten setiap hari!
+            </div>
+          </div>
         </div>
 
-        {/* Learning Progress */}
-        <Card className="shadow-md border rounded-2xl">
-          <CardHeader>
+        {/* LEARNING PROGRESS LIST */}
+        <Card className="shadow-md border rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden">
+          <CardHeader className="bg-white z-20 border-b pb-4 pt-6 px-6 flex-shrink-0">
             <CardTitle className="flex items-center gap-2 text-xl">
               <TrendingUp className="w-5 h-5" />
               Learning Progress
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="space-y-6">
-            {modulesProgress.map((m) => (
-              <div key={m.id}>
-                <div className="flex justify-between mb-2">
-                  <span className="font-medium">{m.title}</span>
-                  <span className="text-primary font-semibold">{m.progress}%</span>
-                </div>
-                <Progress value={m.progress} className="h-3" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+          <CardContent className="p-6 space-y-4 overflow-y-auto scroll-smooth">
+            <div className="grid gap-4">
+              {modulesProgress.map((m) => (
+                <div
+                  key={m.id}
+                  className="group relative bg-white border border-gray-100 rounded-xl p-4 shadow-sm 
+               hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+                >
+                  {/* HEADER */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {/* 🔵 ICON MODULE */}
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center shadow-md"
+                        style={{
+                          background: moduleColors[m.id] || "#4d97f3",
+                        }}
+                      >
+                        <MessageCircle className="w-5 h-5 text-white" />
+                      </div>
 
-        {/* Weekly Learning Hours */}
-        <Card className="shadow-md border rounded-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <BarChart className="w-5 h-5" />
-              Weekly Learning Hours
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between gap-4 h-48">
-              {weeklyActivity.map((d) => (
-                <div key={d.day} className="flex-1 flex flex-col items-center gap-3">
-                  <div className="flex-1 w-full flex items-end">
+                      <div className="flex flex-col leading-tight">
+                        <span className="font-semibold text-sm text-gray-900">
+                          {m.title}
+                        </span>
+                        <span className="text-[11px] text-gray-500">
+                          {m.lessons_count} Lessons
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="font-semibold text-primary text-sm">
+                      {m.progress}%
+                    </span>
+                  </div>
+
+                  {/* PROGRESS BAR */}
+                  <div className="mt-3 relative h-2.5 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className="w-full bg-primary rounded-t-lg"
-                      style={{ height: `${(d.hours / maxHours) * 100}%` }}
+                      className="absolute top-0 left-0 h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${m.progress}%`,
+                        background: `linear-gradient(90deg, #3b82f6, #06b6d4)`,
+                      }}
                     />
                   </div>
-                  <div className="text-center">
-                    <div className="text-xs font-medium text-gray-500">{d.day}</div>
-                    <div className="text-xs text-primary font-bold">{d.hours}h</div>
+
+                  <div className="mt-3 flex items-center justify-between text-[11px]">
+                    <span className="text-gray-600">
+                      {m.completed}/{m.lessons_count} completed
+                    </span>
+
+                    <span
+                      className={`px-2 py-[2px] rounded-full text-[10px] font-medium 
+                        ${
+                          m.progress === 100
+                            ? "bg-green-100 text-green-700"
+                            : m.progress > 0
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
+                    >
+                      {m.progress === 100
+                        ? "Completed"
+                        : m.progress > 0
+                        ? "In Progress"
+                        : "Not Started"}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Achievements */}
-        <Card className="shadow-md border rounded-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5" />
-              Recent Achievements
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {achievements.map((a, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 bg-accent/10 border rounded-xl">
-                <div className="text-3xl">{a.icon}</div>
-                <div>
-                  <p className="font-semibold">{a.name}</p>
-                  <p className="text-xs text-gray-500">{a.date}</p>
-                </div>
-              </div>
-            ))}
+            
+            {/* Spacer di bawah agar item terakhir tidak terlalu mepet saat discroll */}
+            <div className="h-4"></div>
           </CardContent>
         </Card>
       </div>
+
+      {/* MOBILE PROFILE (Visible only on mobile) */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t p-4 z-50">
+        <Link to="/profilepage">
+           <Button className="w-full">View My Profile</Button>
+        </Link>
+      </div>
+      
     </div>
   );
 };
