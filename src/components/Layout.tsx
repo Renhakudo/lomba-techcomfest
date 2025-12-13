@@ -13,25 +13,30 @@ const Layout = ({ children }: LayoutProps) => {
   const { pathname } = useLocation();
   const [session, setSession] = useState<Session | null>(null);
 
-  // Sembunyikan footer hanya di dashboard
-  const hideFooter = pathname.startsWith("/dashboard");
+  // === LIST HALAMAN YANG FOOTER-NYA DISUMBUNYIKAN ===
+  const hiddenFooterRoutes = [
+    "/dashboard",
+    "/modules",
+    "/aiassistent",
+  ];
+
+  // cek apakah pathname dimulai dengan salah satu route di atas
+  const hideFooter = hiddenFooterRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
 
   useEffect(() => {
-    // 1. Cek status login saat halaman dimuat pertama kali
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
 
-    // 2. Pantau perubahan status (Login/Logout) secara real-time
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
 
-      // --- PERBAIKAN DISINI ---
-      // Jika event adalah 'SIGNED_OUT' (Logout), hapus riwayat chat
-      if (event === 'SIGNED_OUT') {
-        localStorage.removeItem('skillup_chat_history');
+      if (event === "SIGNED_OUT") {
+        localStorage.removeItem("skillup_chat_history");
       }
     });
 
@@ -40,13 +45,11 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Navigation tetap di atas */}
       <Navigation />
 
-      {/* Konten utama */}
       <main className="flex-1">{children}</main>
 
-      {/* Footer */}
+      {/* FOOTER HANYA MUNCUL JIKA hideFooter === false */}
       {!hideFooter && (
         <footer className="bg-card border-t border-border py-8 mt-20">
           <div className="container mx-auto px-4 text-center text-muted-foreground">
@@ -55,13 +58,7 @@ const Layout = ({ children }: LayoutProps) => {
         </footer>
       )}
 
-      {/* AI Assistant */}
-      {/* Trik 'key={session?.user?.id}': 
-          Ini memaksa React untuk menghancurkan dan membuat ulang komponen Chatbot 
-          setiap kali User ID berubah (misal ganti akun).
-          Jadi chat history di memori (state) pasti bersih.
-      */}
-      {session && <ChatBotBubble key={session.user.id} />}
+      {session && <ChatBotBubble key={session.user?.id} />}
     </div>
   );
 };

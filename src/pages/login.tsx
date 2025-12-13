@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+// Hapus useNavigate, kita ganti pakai window.location agar lebih kuat
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 
 const Login = () => {
@@ -9,6 +11,22 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // const navigate = useNavigate(); // Kita matikan ini
+  const location = useLocation();
+
+  // 1. Ambil target path
+  const getRedirectPath = () => {
+    const params = new URLSearchParams(location.search);
+    const target = params.get("redirect") || params.get("redirectTo");
+    
+    // Debugging: Cek di console browser apakah target terbaca
+    console.log("Redirect Target:", target); 
+    
+    return target || "/dashboard";
+  };
+
+  const targetPath = getRedirectPath();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +43,13 @@ const Login = () => {
     if (error) {
       setErrorMsg(error.message);
     } else {
-      window.location.href = "/dashboard";
+      // --- PERBAIKAN UTAMA DI SINI ---
+      // Jangan pakai navigate(targetPath). 
+      // Pakai window.location.replace() untuk memaksa browser pindah.
+      // Ini mencegah "AuthGuard" atau "App.tsx" membajak navigasi ke dashboard.
+      
+      console.log("Login sukses, mengarahkan ke:", targetPath);
+      window.location.replace(targetPath);
     }
   };
 
@@ -33,14 +57,17 @@ const Login = () => {
     setLoading(true);
     setErrorMsg("");
 
+    // Pastikan URL redirect dikirim ke callback Google
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        // Penting: Pastikan logic di /auth/callback juga membaca param ini
+        redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(targetPath)}`,
       },
     });
 
     setLoading(false);
+
     if (error) setErrorMsg(error.message);
   };
 
@@ -51,6 +78,12 @@ const Login = () => {
           <CardTitle className="text-center text-2xl font-bold">
             Login to your account
           </CardTitle>
+          {/* Feedback Visual: Tampilkan jika user akan diarahkan khusus */}
+          {targetPath !== "/dashboard" && (
+            <div className="bg-blue-50 text-blue-600 px-4 py-2 rounded-md text-xs text-center mt-2 border border-blue-100">
+              Setelah login, Anda akan diarahkan ke halaman yang diminta.
+            </div>
+          )}
         </CardHeader>
 
         <CardContent>

@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, CheckCircle2, PlayCircle } from "lucide-react";
+import { CheckCircle2, PlayCircle, BookOpen } from "lucide-react";
 
 interface Module {
   id: string;
   title: string;
   description: string;
   color: string;
+  image_url: string | null; // Kolom baru dari database
   lessons: { id: number }[];
   lessons_count: number;
   duration: string;
@@ -44,9 +45,10 @@ const Modules = () => {
         setUserId(uid);
 
         // Ambil modules & lessons
+        // UPDATE QUERY: Menambahkan image_url
         const { data: modulesData, error: modulesError } = await supabase
           .from("modules")
-          .select("id, title, description, color, lessons(id)")
+          .select("id, title, description, color, image_url, lessons(id)")
           .order("id", { ascending: true });
 
         if (modulesError || !modulesData) {
@@ -99,68 +101,32 @@ const Modules = () => {
   };
 
   const getStatusBadge = (progress: number) => {
-    if (progress === 100) return <Badge className="btn-gradient-success">Completed</Badge>;
-    if (progress > 0) return <Badge className="btn-gradient-primary">In Progress</Badge>;
-    return <Badge variant="secondary">Not Started</Badge>;
+    if (progress === 100) return <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200">Completed</Badge>;
+    if (progress > 0) return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200">In Progress</Badge>;
+    return <Badge variant="outline" className="text-gray-500 border-gray-200">Not Started</Badge>;
   };
 
   // --- SKELETON LOADING ---
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-        <div className="container mx-auto px-4">
-          {/* Header Skeleton */}
+        <div className="container mx-auto px-4 max-w-5xl">
           <div className="mb-12 text-center space-y-4 animate-pulse">
             <div className="h-10 w-64 bg-gray-200 rounded mx-auto" />
             <div className="h-6 w-96 bg-gray-200 rounded mx-auto" />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {/* Generate 4 skeleton cards */}
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="border-2 bg-white">
-                <CardHeader className="pb-2">
-                  <div className="flex gap-5 items-start">
-                    {/* Icon Skeleton */}
-                    <div className="w-16 h-16 rounded-2xl bg-gray-200 animate-pulse shrink-0" />
-                    
-                    <div className="flex-1 min-w-0 space-y-3">
-                      <div className="flex justify-between items-start">
-                        {/* Title Skeleton */}
-                        <div className="h-8 w-1/2 bg-gray-200 rounded animate-pulse" />
-                        {/* Badge Skeleton */}
-                        <div className="h-6 w-20 bg-gray-200 rounded animate-pulse" />
-                      </div>
-                      {/* Description Skeleton */}
-                      <div className="space-y-2">
-                        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
-                        <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-4 pt-2">
-                  {/* Meta Info Skeleton */}
-                  <div className="flex gap-4">
-                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
-                  </div>
-
-                  {/* Progress Bar Skeleton */}
-                  <div className="space-y-2 mt-2">
-                    <div className="flex justify-between">
-                       <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
-                       <div className="h-4 w-8 bg-gray-200 rounded animate-pulse" />
-                    </div>
-                    <div className="h-2.5 w-full bg-gray-200 rounded-full animate-pulse" />
-                  </div>
-
-                  {/* Button Skeleton */}
-                  <div className="h-10 w-full bg-gray-200 rounded animate-pulse mt-2" />
-                </CardContent>
-              </Card>
+          <div className="grid md:grid-cols-1 gap-8 max-w-4xl mx-auto">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-col sm:flex-row bg-white rounded-2xl p-6 border shadow-sm h-auto sm:h-64 animate-pulse gap-6">
+                <div className="w-full sm:w-1/3 bg-gray-200 rounded-xl" />
+                <div className="flex-1 space-y-4 py-2">
+                  <div className="h-8 bg-gray-200 rounded w-3/4" />
+                  <div className="h-4 bg-gray-200 rounded w-full" />
+                  <div className="h-4 bg-gray-200 rounded w-5/6" />
+                  <div className="h-12 bg-gray-200 rounded w-40 mt-6" />
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -171,77 +137,108 @@ const Modules = () => {
   // --- MAIN CONTENT ---
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-12 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
             Learning Modules
           </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Structured learning paths to master essential soft skills. Complete modules at your own pace.
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Focus on practice & portfolio building with our structured learning paths.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        {/* List Layout - Single Column for clearer, wider cards */}
+        <div className="grid grid-cols-1 gap-8 max-w-5xl mx-auto">
           {modules.map((module) => (
-            <Card key={module.id} className="card-hover border-2 cursor-pointer transition-all duration-300 hover:shadow-lg bg-white">
-              <CardHeader className="pb-2">
-                <div className="flex gap-5 items-start">
-                  {/* --- KIRI: ICON --- */}
-                  <div
-                    className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${module.color} flex items-center justify-center shadow-md shrink-0`}
-                  >
-                    <MessageCircle className="w-8 h-8 text-white" />
+            <Card 
+              key={module.id} 
+              className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-none shadow-md bg-white rounded-3xl"
+            >
+              <CardContent className="p-0">
+                <div className="flex flex-col md:flex-row h-full">
+                  
+                  {/* --- LEFT SIDE: IMAGE --- */}
+                  <div className="relative w-full md:w-2/5 min-h-[240px] md:min-h-full">
+                    {module.image_url ? (
+                        <img 
+                            src={module.image_url} 
+                            alt={module.title}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        // Fallback jika tidak ada gambar
+                        <div className={`w-full h-full bg-gradient-to-br ${module.color} flex items-center justify-center p-10`}>
+                            <div className="bg-white/20 backdrop-blur-sm rounded-full p-6">
+                                <BookOpen className="w-12 h-12 text-white" />
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Status Badge Overlay on Image (Mobile) */}
+                    <div className="absolute top-4 left-4 md:hidden">
+                        {getStatusBadge(module.progress)}
+                    </div>
                   </div>
 
-                  {/* --- KANAN: KONTEN --- */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-2">
-                      {/* Judul */}
-                      <CardTitle className="text-2xl font-bold leading-tight">{module.title}</CardTitle>
-                      
-                      {/* Status Badge (Tetap di kanan atas) */}
-                      <div className="flex items-center gap-2 shrink-0 ml-1">
-                        {getStatusIcon(module.progress)}
-                        {getStatusBadge(module.progress)}
-                      </div>
-                    </div>
+                  {/* --- RIGHT SIDE: CONTENT --- */}
+                  <div className="flex-1 p-8 md:p-10 flex flex-col justify-center">
                     
-                    {/* Deskripsi (Di bawah judul, tetap di sebelah kanan icon) */}
-                    <CardDescription className="text-base mt-2 leading-snug">
+                    <div className="mb-4 flex justify-between items-start">
+                        <div>
+                            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
+                                {module.title}
+                            </h2>
+                            <div className="flex items-center gap-3 text-sm text-gray-500 mb-4">
+                                <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 px-3 py-1">
+                                    {module.level}
+                                </Badge>
+                                <span>•</span>
+                                <span>{module.lessons_count} Lessons</span>
+                                <span>•</span>
+                                <span>{module.duration}</span>
+                            </div>
+                        </div>
+                        {/* Status Icon Desktop */}
+                        <div className="hidden md:block">
+                            {getStatusIcon(module.progress)}
+                        </div>
+                    </div>
+
+                    <CardDescription className="text-base md:text-lg text-gray-600 leading-relaxed mb-8">
                       {module.description}
                     </CardDescription>
+
+                    <div className="mt-auto">
+                        <div className="flex flex-col sm:flex-row gap-4 items-center">
+                            <Link to={`/module/${module.id}`} className="w-full sm:w-auto">
+                                <Button 
+                                    size="lg" 
+                                    className="w-full sm:w-auto font-bold text-base px-8 py-6 shadow-lg hover:shadow-xl transition-all rounded-xl" 
+                                    variant={module.progress === 100 ? "outline" : "default"}
+                                >
+                                    {module.progress === 100 ? "Review Material" : "Start Learning"}
+                                </Button>
+                            </Link>
+                            
+                            {/* Progress Bar Info */}
+                            {module.progress > 0 && (
+                                <div className="flex-1 w-full sm:w-auto flex items-center gap-3">
+                                    <div className="h-2.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full rounded-full bg-gradient-to-r ${module.color}`} 
+                                            style={{ width: `${module.progress}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                                        {module.progress}% Complete
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                   </div>
                 </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4 pt-2">
-                {/* Meta Info */}
-                <div className="flex items-center gap-6 text-sm text-muted-foreground pl-1">
-                  <span className="flex items-center gap-1">📚 {module.lessons_count} Lessons</span>
-                  <span className="flex items-center gap-1">⏱️ {module.duration}</span>
-                  <Badge variant="outline" className="border-muted-foreground/30">{module.level}</Badge>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="space-y-2 mt-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground font-medium">Progress</span>
-                    <span className="font-bold text-primary">{module.progress}%</span>
-                  </div>
-                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full bg-gradient-to-r ${module.color} transition-all duration-700 ease-out`}
-                      style={{ width: `${module.progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Button */}
-                <Link to={`/module/${module.id}`}>
-                  <Button className="w-full mt-2 font-semibold shadow-sm" variant={module.progress === 100 ? "outline" : "default"}>
-                    {module.progress === 100 ? "Review Module" : "View Lessons"}
-                  </Button>
-                </Link>
               </CardContent>
             </Card>
           ))}
