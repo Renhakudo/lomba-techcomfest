@@ -14,17 +14,6 @@ interface ModuleProgress {
   progress: number;
 }
 
-// interface WeeklyActivity {
-//   day: string;
-//   hours: number;
-// }
-
-// interface Achievement {
-//   name: string;
-//   date: string;
-//   icon: string;
-// }
-
 const moduleColors: Record<string, string> = {
   "1": "#4d97f3",
   "2": "#4dbf72",
@@ -35,8 +24,6 @@ const moduleColors: Record<string, string> = {
 const Dashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [modulesProgress, setModulesProgress] = useState<ModuleProgress[]>([]);
-  // const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivity[]>([]); 
-  // const [achievements, setAchievements] = useState<Achievement[]>([]); 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -85,8 +72,6 @@ const Dashboard = () => {
         );
 
         setModulesProgress(modulesWithProgress);
-
-        // Fetch activity & badges kept if needed later
       } catch (err) {
         console.error(err);
       } finally {
@@ -117,18 +102,12 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="flex bg-gray-50 min-h-screen">
-        {/* Skeleton Sidebar */}
         <div className="bg-white border-r hidden md:block w-[360px] fixed left-0 top-0 h-screen overflow-y-auto p-6 pt-24 pb-10 z-10">
           <Card className="w-full shadow-md border rounded-2xl p-6">
             <div className="flex flex-col items-center animate-pulse">
-              {/* Avatar Skeleton */}
               <div className="w-28 h-28 rounded-full bg-gray-200" />
-              
-              {/* Name & Username Skeleton */}
               <div className="mt-4 h-8 w-48 bg-gray-200 rounded" />
               <div className="mt-2 h-4 w-32 bg-gray-200 rounded" />
-
-              {/* Stats Skeleton */}
               <div className="mt-6 w-full space-y-4">
                 <div className="flex justify-between">
                   <div className="h-4 w-16 bg-gray-200 rounded" />
@@ -139,8 +118,6 @@ const Dashboard = () => {
                   <div className="h-4 w-12 bg-gray-200 rounded" />
                 </div>
               </div>
-
-              {/* Buttons Skeleton */}
               <div className="mt-6 w-full space-y-3">
                 <div className="h-10 w-full bg-gray-200 rounded" />
                 <div className="h-10 w-full bg-gray-200 rounded" />
@@ -149,26 +126,22 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Skeleton Right Content */}
         <div className="flex-1 md:ml-[360px] p-6 pt-24 pb-6 flex flex-col gap-6 md:h-screen md:overflow-hidden h-auto">
-          {/* Top Stats Skeleton */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-shrink-0">
-             {/* Card 1 Skeleton */}
             <div className="h-[200px] rounded-3xl bg-gray-200 animate-pulse" />
-             {/* Card 2 Skeleton */}
             <div className="h-[200px] rounded-3xl bg-gray-200 animate-pulse" />
           </div>
-
-          {/* List Skeleton */}
           <Card className="shadow-md border rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden">
             <CardHeader className="bg-white z-20 border-b pb-4 pt-6 px-6 flex-shrink-0">
-               <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+              <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
             </CardHeader>
             <CardContent className="p-6 space-y-4 overflow-y-hidden">
-               {/* List Items Skeleton (3 items) */}
-               {[1, 2, 3].map((i) => (
-                 <div key={i} className="h-24 w-full bg-gray-100 rounded-xl animate-pulse" />
-               ))}
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-24 w-full bg-gray-100 rounded-xl animate-pulse"
+                />
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -179,10 +152,27 @@ const Dashboard = () => {
   if (!profile)
     return <div className="p-8 text-center">Profile not found.</div>;
 
+  const sortedModules = [...modulesProgress].sort((a, b) => {
+    const group = (m: ModuleProgress) =>
+      m.progress > 0 && m.progress < 100 ? 0 : m.progress === 100 ? 1 : 2;
+
+    const ga = group(a);
+    const gb = group(b);
+
+    if (ga !== gb) return ga - gb;
+
+    if (ga === 0) {
+      return b.progress - a.progress;
+    }
+    if (ga === 1) {
+      return a.title.localeCompare(b.title);
+    }
+    return a.title.localeCompare(b.title);
+  });
+
   // --- MAIN CONTENT ---
   return (
     <div className="flex bg-gray-50 min-h-screen">
-      
       {/* --- SIDEBAR --- */}
       <div className="bg-white border-r hidden md:block w-[360px] fixed left-0 top-0 h-screen overflow-y-auto p-6 pt-24 pb-10 z-10">
         <Card className="w-full shadow-md border rounded-2xl p-6">
@@ -224,6 +214,8 @@ const Dashboard = () => {
                 <Button className="w-full">Continue Learning</Button>
               </Link>
 
+              <div className="w-full border-t my-3 border-gray-300"></div>
+
               <Link to="/profilepage">
                 <Button variant="outline" className="w-full mt-3">
                   Edit Profile
@@ -235,16 +227,18 @@ const Dashboard = () => {
       </div>
 
       {/* --- RIGHT CONTENT --- */}
-      <div className="flex-1 md:ml-[360px] p-6 pt-24 pb-6 flex flex-col gap-6 md:h-screen md:overflow-hidden h-auto">
-        
+      <div className="flex-1 md:ml-[360px] p-4 pt-24 pb-6 flex flex-col gap-6 md:h-screen md:overflow-hidden h-auto">
         {/* TOP STATS CARDS */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-shrink-0">
           {/* Module Progress Card (Blue) */}
           <div
-            className="rounded-3xl overflow-hidden shadow-lg bg-gradient-to-br from-[#4a90e2] to-[#50c9ce]
-             transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-200/50 hover:-translate-y-1"
+            // PERUBAHAN DI SINI:
+            // shadow-sm (awal tipis) -> hover:shadow-2xl (saat hover tebal) + hover:shadow-blue-300/50 (efek glow biru)
+            className="rounded-3xl overflow-hidden shadow-sm bg-gradient-to-br from-[#4a90e2] to-[#50c9ce]
+             transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-300/50 hover:-translate-y-1 
+             h-full flex flex-col"
           >
-            <div className="p-6 flex items-center gap-6">
+            <div className="p-6 flex items-center gap-6 flex-1">
               <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner">
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
@@ -278,19 +272,20 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <Link to="/modules">
-              <div className="bg-white/10 backdrop-blur-md p-3 text-xs text-gray-100 text-center cursor-pointer hover:bg-white/20 transition-colors">
-                Klik untuk melihat modul atau lanjutkan belajar.
-              </div>
-            </Link>
+            <div className="bg-white/10 backdrop-blur-md p-3 text-xs text-gray-100 text-center cursor-default">
+              Next Up: Skills You’re About to Unlock
+            </div>
           </div>
 
           {/* Streak Card (Orange) */}
           <div
-            className="rounded-3xl overflow-hidden shadow-lg bg-gradient-to-br from-[#ff8a3d] to-[#ff7f50]
-             transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-200/50 hover:-translate-y-1"
+            // PERUBAHAN DI SINI:
+            // shadow-sm (awal tipis) -> hover:shadow-2xl (saat hover tebal) + hover:shadow-orange-300/50 (efek glow orange)
+            className="rounded-3xl overflow-hidden shadow-sm bg-gradient-to-br from-[#ff8a3d] to-[#ff7f50]
+             transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-300/50 hover:-translate-y-1
+             h-full flex flex-col"
           >
-            <div className="p-6 flex items-center gap-6">
+            <div className="p-6 flex items-center gap-6 flex-1">
               <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner">
                 <Calendar className="w-7 h-7 text-white" />
               </div>
@@ -307,13 +302,15 @@ const Dashboard = () => {
                   Great job! teruskan kebiasaan belajarmu.
                 </p>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] bg-white/30 backdrop-blur-md px-3 py-1 rounded-full">
-                    +1 hari jika belajar hari ini
-                  </span>
-                  <span className="text-[11px] bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
-                    Target: 10 hari
-                  </span>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <span className="text-[11px] bg-white/30 backdrop-blur-md px-3 py-1 rounded-full">
+                      +1 hari jika belajar hari ini
+                    </span>
+                    <span className="text-[11px] bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
+                      Target: 10 hari
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -331,7 +328,7 @@ const Dashboard = () => {
 
         {/* LEARNING PROGRESS LIST */}
         <Card className="shadow-md border rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden">
-          <CardHeader className="bg-white z-20 border-b pb-4 pt-6 px-6 flex-shrink-0">
+          <CardHeader className="bg-white z-20 border-b pb-4 p-3 px-6 flex-shrink-0">
             <CardTitle className="flex items-center gap-2 text-xl">
               <TrendingUp className="w-5 h-5" />
               Learning Progress
@@ -340,7 +337,7 @@ const Dashboard = () => {
 
           <CardContent className="p-6 space-y-4 overflow-y-auto scroll-smooth">
             <div className="grid gap-4">
-              {modulesProgress.map((m) => (
+              {sortedModules.map((m) => (
                 <div
                   key={m.id}
                   className="group relative bg-white border border-gray-100 rounded-xl p-4 shadow-sm 
@@ -410,20 +407,17 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
-            
-            {/* Spacer di bawah agar item terakhir tidak terlalu mepet saat discroll */}
+
             <div className="h-4"></div>
           </CardContent>
         </Card>
       </div>
 
-      {/* MOBILE PROFILE (Visible only on mobile) */}
       <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t p-4 z-50">
         <Link to="/profilepage">
-           <Button className="w-full">View My Profile</Button>
+          <Button className="w-full">View My Profile</Button>
         </Link>
       </div>
-      
     </div>
   );
 };

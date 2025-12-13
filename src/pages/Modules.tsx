@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { CheckCircle2, PlayCircle, BookOpen } from "lucide-react";
+import {
+  BookOpen,
+  Clock,
+  LayoutGrid,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  Trophy,
+  Zap,
+} from "lucide-react";
 
+// --- Tipe Data ---
 interface Module {
   id: string;
   title: string;
   description: string;
   color: string;
-  image_url: string | null; // Kolom baru dari database
   lessons: { id: number }[];
   lessons_count: number;
   duration: string;
@@ -21,58 +27,55 @@ interface Module {
 
 const Modules = () => {
   const [modules, setModules] = useState<Module[]>([]);
-  const [completedLessons, setCompletedLessons] = useState<Record<string, number[]>>({});
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [totalProgress, setTotalProgress] = useState(0);
 
+  // --- Fetch Data Logic ---
   useEffect(() => {
     const fetchModules = async () => {
       setLoading(true);
-
       try {
-        // Ambil session user
         const {
           data: { session },
         } = await supabase.auth.getSession();
-
         if (!session?.user) {
-          console.error("User not logged in");
           setLoading(false);
           return;
         }
 
         const uid = session.user.id;
-        setUserId(uid);
 
-        // Ambil modules & lessons
-        // UPDATE QUERY: Menambahkan image_url
-        const { data: modulesData, error: modulesError } = await supabase
+        const { data: modulesData } = await supabase
           .from("modules")
-          .select("id, title, description, color, image_url, lessons(id)")
+          .select("id, title, description, color, lessons(id)")
           .order("id", { ascending: true });
 
-        if (modulesError || !modulesData) {
-          console.error("Error fetching modules:", modulesError);
+        if (!modulesData) {
           setModules([]);
           setLoading(false);
           return;
         }
 
-        // Ambil completed_lessons user dari profiles
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("completed_lessons")
           .eq("id", uid)
           .single();
 
-        const userCompletedLessons = profileError || !profileData ? {} : profileData.completed_lessons || {};
-        setCompletedLessons(userCompletedLessons);
+        const userCompletedLessons = profileData?.completed_lessons || {};
 
-        // Hitung progress per modul
+        let totalPercentage = 0;
+
         const modulesWithProgress = modulesData.map((mod: any) => {
           const totalLessons = mod.lessons?.length || 0;
-          const completedCount = (userCompletedLessons[mod.id]?.length) || 0;
-          const progress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+          const completedCount = userCompletedLessons[mod.id]?.length || 0;
+          const progress =
+            totalLessons > 0
+              ? Math.round((completedCount / totalLessons) * 100)
+              : 0;
+
+          totalPercentage += progress;
+
           return {
             ...mod,
             lessons_count: totalLessons,
@@ -82,51 +85,45 @@ const Modules = () => {
           };
         });
 
+        // Hitung rata-rata progress keseluruhan untuk ditampilkan di header
+        if (modulesData.length > 0) {
+          setTotalProgress(Math.round(totalPercentage / modulesData.length));
+        }
+
         setModules(modulesWithProgress);
       } catch (err) {
         console.error("Unexpected error:", err);
         setModules([]);
       }
-
       setLoading(false);
     };
 
     fetchModules();
   }, []);
 
-  const getStatusIcon = (progress: number) => {
-    if (progress === 100) return <CheckCircle2 className="w-5 h-5 text-secondary" />;
-    if (progress > 0) return <PlayCircle className="w-5 h-5 text-primary" />;
+  // --- Helper: Badge Status Minimalis ---
+  const getStatusIndicator = (progress: number) => {
+    if (progress === 100)
+      return (
+        <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 ring-4 ring-emerald-50">
+          <CheckCircle2 className="w-5 h-5" />
+        </span>
+      );
     return null;
   };
 
-  const getStatusBadge = (progress: number) => {
-    if (progress === 100) return <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200">Completed</Badge>;
-    if (progress > 0) return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200">In Progress</Badge>;
-    return <Badge variant="outline" className="text-gray-500 border-gray-200">Not Started</Badge>;
-  };
-
-  // --- SKELETON LOADING ---
+  // --- Loading Skeleton Modern ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <div className="mb-12 text-center space-y-4 animate-pulse">
-            <div className="h-10 w-64 bg-gray-200 rounded mx-auto" />
-            <div className="h-6 w-96 bg-gray-200 rounded mx-auto" />
-          </div>
-
-          <div className="grid md:grid-cols-1 gap-8 max-w-4xl mx-auto">
+      <div className="min-h-screen bg-slate-50 pt-10 pb-12 font-sans">
+        <div className="container mx-auto px-4 max-w-6xl animate-pulse">
+          <div className="h-64 bg-slate-200 rounded-[2.5rem] mb-12 w-full" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex flex-col sm:flex-row bg-white rounded-2xl p-6 border shadow-sm h-auto sm:h-64 animate-pulse gap-6">
-                <div className="w-full sm:w-1/3 bg-gray-200 rounded-xl" />
-                <div className="flex-1 space-y-4 py-2">
-                  <div className="h-8 bg-gray-200 rounded w-3/4" />
-                  <div className="h-4 bg-gray-200 rounded w-full" />
-                  <div className="h-4 bg-gray-200 rounded w-5/6" />
-                  <div className="h-12 bg-gray-200 rounded w-40 mt-6" />
-                </div>
-              </div>
+              <div
+                key={i}
+                className="h-80 bg-white rounded-3xl border border-slate-100 p-6"
+              />
             ))}
           </div>
         </div>
@@ -134,113 +131,161 @@ const Modules = () => {
     );
   }
 
-  // --- MAIN CONTENT ---
+  // --- Main Render ---
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="mb-12 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-            Learning Modules
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Focus on practice & portfolio building with our structured learning paths.
-          </p>
+    <div className="mt-10 min-h-screen bg-[#F8FAFC] font-sans text-slate-800 relative selection:bg-indigo-500 selection:text-white">
+      <div className="fixed inset-0 h-full w-full bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none -z-10" />
+
+      <div className="container mx-auto px-4 lg:px-8 max-w-7xl pt-10 pb-20">
+        <div className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 md:p-12 mb-16 shadow-2xl shadow-slate-900/20 text-white">
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-600 rounded-full blur-3xl opacity-20 animate-pulse" />
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-purple-600 rounded-full blur-3xl opacity-20" />
+
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mb-6 text-sm font-medium text-blue-200">
+                <Sparkles className="w-4 h-4 text-yellow-300" />
+                <span>Interactive Learning Dashboard</span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4 leading-tight">
+                Upgrade Your <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+                  Future Skills.
+                </span>
+              </h1>
+              <p className="text-slate-400 text-lg max-w-lg leading-relaxed">
+                Akses modul premium dan lacak perkembangan belajarmu secara
+                real-time. Mulai langkah pertamamu hari ini.
+              </p>
+            </div>
+
+            {/* Stats Card Kecil di Kanan Header */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-6 rounded-2xl w-full md:w-auto min-w-[200px]">
+              <div className="flex items-center gap-3 mb-2 text-slate-400 text-sm font-medium">
+                <Trophy className="w-4 h-4 text-yellow-400" />
+                Overall Progress
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="text-4xl font-bold">{totalProgress}%</span>
+                <span className="text-slate-500 mb-1">completed</span>
+              </div>
+              {/* Mini Progress Bar */}
+              <div className="w-full h-1.5 bg-white/10 rounded-full mt-3 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full"
+                  style={{ width: `${totalProgress}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* List Layout - Single Column for clearer, wider cards */}
-        <div className="grid grid-cols-1 gap-8 max-w-5xl mx-auto">
+        {/* --- 3. GRID MODULES (Cards) --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {modules.map((module) => (
-            <Card 
-              key={module.id} 
-              className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-none shadow-md bg-white rounded-3xl"
+            <div
+              key={module.id}
+              className="group relative bg-white rounded-[2rem] p-2 hover:-translate-y-2 transition-transform duration-300 ease-out shadow-lg shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-500/10 border border-slate-100"
             >
-              <CardContent className="p-0">
-                <div className="flex flex-col md:flex-row h-full">
-                  
-                  {/* --- LEFT SIDE: IMAGE --- */}
-                  <div className="relative w-full md:w-2/5 min-h-[240px] md:min-h-full">
-                    {module.image_url ? (
-                        <img 
-                            src={module.image_url} 
-                            alt={module.title}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        // Fallback jika tidak ada gambar
-                        <div className={`w-full h-full bg-gradient-to-br ${module.color} flex items-center justify-center p-10`}>
-                            <div className="bg-white/20 backdrop-blur-sm rounded-full p-6">
-                                <BookOpen className="w-12 h-12 text-white" />
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Status Badge Overlay on Image (Mobile) */}
-                    <div className="absolute top-4 left-4 md:hidden">
-                        {getStatusBadge(module.progress)}
+              {/* Card Inner Content */}
+              <div className="h-full bg-white rounded-[1.5rem] p-6 flex flex-col relative overflow-hidden">
+                {/* Header Card: Icon & Title */}
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex gap-4">
+                    {/* Modern Glassy Icon */}
+                    <div
+                      className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${module.color} p-0.5 shadow-lg`}
+                    >
+                      <div className="w-full h-full bg-white/90 backdrop-blur-sm rounded-[14px] flex items-center justify-center">
+                        <BookOpen className="w-7 h-7 text-slate-700" />
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      <h3 className="text-xl font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">
+                        {module.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                          {module.level}
+                        </span>
+                        {module.progress > 0 && module.progress < 100 && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-500 bg-orange-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Zap className="w-3 h-3" /> Active
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* --- RIGHT SIDE: CONTENT --- */}
-                  <div className="flex-1 p-8 md:p-10 flex flex-col justify-center">
-                    
-                    <div className="mb-4 flex justify-between items-start">
-                        <div>
-                            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
-                                {module.title}
-                            </h2>
-                            <div className="flex items-center gap-3 text-sm text-gray-500 mb-4">
-                                <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-0 px-3 py-1">
-                                    {module.level}
-                                </Badge>
-                                <span>•</span>
-                                <span>{module.lessons_count} Lessons</span>
-                                <span>•</span>
-                                <span>{module.duration}</span>
-                            </div>
-                        </div>
-                        {/* Status Icon Desktop */}
-                        <div className="hidden md:block">
-                            {getStatusIcon(module.progress)}
-                        </div>
-                    </div>
-
-                    <CardDescription className="text-base md:text-lg text-gray-600 leading-relaxed mb-8">
-                      {module.description}
-                    </CardDescription>
-
-                    <div className="mt-auto">
-                        <div className="flex flex-col sm:flex-row gap-4 items-center">
-                            <Link to={`/module/${module.id}`} className="w-full sm:w-auto">
-                                <Button 
-                                    size="lg" 
-                                    className="w-full sm:w-auto font-bold text-base px-8 py-6 shadow-lg hover:shadow-xl transition-all rounded-xl" 
-                                    variant={module.progress === 100 ? "outline" : "default"}
-                                >
-                                    {module.progress === 100 ? "Review Material" : "Start Learning"}
-                                </Button>
-                            </Link>
-                            
-                            {/* Progress Bar Info */}
-                            {module.progress > 0 && (
-                                <div className="flex-1 w-full sm:w-auto flex items-center gap-3">
-                                    <div className="h-2.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
-                                        <div 
-                                            className={`h-full rounded-full bg-gradient-to-r ${module.color}`} 
-                                            style={{ width: `${module.progress}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                                        {module.progress}% Complete
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                  </div>
+                  {/* Checkmark jika selesai */}
+                  {getStatusIndicator(module.progress)}
                 </div>
-              </CardContent>
-            </Card>
+
+                {/* Description */}
+                <p className="text-slate-500 text-sm leading-relaxed mb-8 line-clamp-2">
+                  {module.description}
+                </p>
+
+                {/* Footer Section */}
+                <div className="mt-auto">
+                  {/* Progress Info */}
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-400 mb-3">
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center gap-1">
+                        <LayoutGrid className="w-3.5 h-3.5" />{" "}
+                        {module.lessons_count}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" /> {module.duration}
+                      </span>
+                    </div>
+                    <span
+                      className={
+                        module.progress === 100
+                          ? "text-emerald-600"
+                          : "text-blue-600"
+                      }
+                    >
+                      {module.progress}%
+                    </span>
+                  </div>
+
+                  {/* Progress Bar Line */}
+                  <div className="h-1.5 w-full bg-slate-100 rounded-full mb-6 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ${
+                        module.progress === 100
+                          ? "bg-emerald-500"
+                          : `bg-gradient-to-r ${module.color}`
+                      }`}
+                      style={{ width: `${module.progress}%` }}
+                    />
+                  </div>
+
+                  {/* Big Button */}
+                  <Link to={`/module/${module.id}`}>
+                    <button
+                      className={`w-full py-4 rounded-xl font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 group/btn
+                         ${
+                           module.progress === 100
+                             ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                             : "bg-slate-900 text-white hover:bg-blue-600 shadow-xl shadow-slate-900/10 hover:shadow-blue-600/20"
+                         }`}
+                    >
+                      {module.progress === 100
+                        ? "Review Module"
+                        : module.progress > 0
+                        ? "Continue Lesson"
+                        : "Start Learning"}
+                      {module.progress !== 100 && (
+                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                      )}
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>

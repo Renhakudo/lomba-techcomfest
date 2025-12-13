@@ -1,26 +1,25 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
   CheckCircle2,
-  Circle,
   Lock,
   PlayCircle,
   BookOpen,
   Trophy,
   BrainCircuit,
-  SkipForward
+  SkipForward,
+  Clock,
+  BarChart,
+  ChevronRight,
+  Sparkles,
+  Zap,
+  MoreVertical,
 } from "lucide-react";
 
 interface Lesson {
@@ -42,13 +41,14 @@ interface Module {
 const ModuleDetail = () => {
   const { moduleId } = useParams<{ moduleId: string }>();
   const navigate = useNavigate();
-  
+
   // State
   const [module, setModule] = useState<Module | null>(null);
-  const [completedLessons, setCompletedLessons] = useState<number[]>([]); 
+  const [completedLessons, setCompletedLessons] = useState<number[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // State Adaptive Learning
   const [hasTakenPretest, setHasTakenPretest] = useState(false);
   const [assignedLevel, setAssignedLevel] = useState<string | null>(null);
@@ -58,7 +58,9 @@ const ModuleDetail = () => {
       setLoading(true);
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session?.user) {
           console.error("User not logged in");
           setLoading(false);
@@ -71,7 +73,9 @@ const ModuleDetail = () => {
         // 1. Ambil Module & Lessons
         const { data: moduleData, error: moduleError } = await supabase
           .from("modules")
-          .select("id, title, description, color, lessons(id, title, duration, lesson_order, difficulty_level)")
+          .select(
+            "id, title, description, color, lessons(id, title, duration, lesson_order, difficulty_level)"
+          )
           .eq("id", moduleId)
           .single();
 
@@ -108,7 +112,6 @@ const ModuleDetail = () => {
           setHasTakenPretest(false);
           setAssignedLevel(null);
         }
-
       } catch (err) {
         console.error(err);
         setModule(null);
@@ -122,284 +125,391 @@ const ModuleDetail = () => {
 
   // Helper Warna Badge Level
   const getLevelBadgeColor = (level: string) => {
-    switch (level) {
-      case "beginner": return "bg-green-100 text-green-800 border-green-200";
-      case "intermediate": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "advanced": return "bg-red-100 text-red-800 border-red-200";
-      default: return "bg-gray-100 text-gray-800";
+    switch (level?.toLowerCase()) {
+      case "beginner":
+        return "bg-emerald-100 text-emerald-700 border-emerald-200/50";
+      case "intermediate":
+        return "bg-blue-100 text-blue-700 border-blue-200/50";
+      case "advanced":
+        return "bg-violet-100 text-violet-700 border-violet-200/50";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  // --- SKELETON LOADING ---
+  // --- SKELETON LOADING (Updated Style) ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-        <div className="container mx-auto px-4 max-w-5xl animate-pulse">
-          {/* Back Button Skeleton */}
-          <div className="h-10 w-32 bg-gray-200 rounded-md mb-8" />
-
-          {/* Module Header Skeleton */}
-          <div className="mb-12">
-            {/* Icon Box */}
-            <div className="w-16 h-16 rounded-2xl bg-gray-200 mb-6 shadow-sm" />
-            
-            {/* Title */}
-            <div className="h-10 w-3/4 md:w-1/2 bg-gray-200 rounded-md mb-4" />
-            
-            {/* Description */}
-            <div className="space-y-2 mb-6">
-                <div className="h-5 w-full bg-gray-200 rounded-md" />
-                <div className="h-5 w-2/3 bg-gray-200 rounded-md" />
+      <div className="min-h-screen bg-slate-50 pt-24 pb-12 font-sans">
+        <div className="container mx-auto px-4 max-w-6xl animate-pulse">
+          <div className="h-64 bg-slate-200 rounded-[2.5rem] mb-10 w-full" />
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-24 bg-white rounded-2xl border border-slate-100"
+                />
+              ))}
             </div>
-
-            {/* Meta Badge */}
-            <div className="flex gap-4 mb-6">
-                <div className="h-6 w-24 bg-gray-200 rounded-full" />
-                <div className="h-6 w-48 bg-gray-200 rounded-md" />
-            </div>
-
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <div className="h-4 w-32 bg-gray-200 rounded" />
-                <div className="h-4 w-10 bg-gray-200 rounded" />
-              </div>
-              <div className="h-3 w-full bg-gray-200 rounded-full" />
-            </div>
-          </div>
-
-          {/* Lessons List Skeleton */}
-          <div className="space-y-4">
-            <div className="h-8 w-48 bg-gray-200 rounded-md mb-6" />
-            
-            {/* Loop 4 skeleton cards */}
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="border-2 border-gray-200 bg-white rounded-xl p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 w-full">
-                    {/* Icon Circle */}
-                    <div className="w-5 h-5 rounded-full bg-gray-200 shrink-0" />
-                    
-                    <div className="w-full">
-                      {/* Title & Badge */}
-                      <div className="flex items-center gap-2 mb-2">
-                          <div className="h-6 w-1/3 bg-gray-200 rounded" />
-                          <div className="h-5 w-16 bg-gray-200 rounded" />
-                      </div>
-                      {/* Duration */}
-                      <div className="h-4 w-24 bg-gray-200 rounded" />
-                    </div>
-                  </div>
-                  {/* Button */}
-                  <div className="h-9 w-20 bg-gray-200 rounded-md shrink-0 ml-4" />
-                </div>
-              </div>
-            ))}
+            <div className="hidden lg:block h-80 bg-white rounded-3xl border border-slate-100" />
           </div>
         </div>
       </div>
     );
   }
 
-  if (!module) return <div className="min-h-screen bg-gray-50 pt-24 flex items-center justify-center">Module Not Found</div>;
+  if (!module)
+    return (
+      <div className="min-h-screen bg-slate-50 pt-24 flex flex-col items-center justify-center font-medium text-slate-500">
+        <BookOpen className="w-12 h-12 mb-4 text-slate-300" />
+        Module Not Found
+      </div>
+    );
 
-  const sortedLessons = [...module.lessons].sort((a, b) => a.lesson_order - b.lesson_order);
+  const sortedLessons = [...module.lessons].sort(
+    (a, b) => a.lesson_order - b.lesson_order
+  );
 
-  // --- LOGIKA UTAMA ADAPTIVE LEARNING ---
   const isLessonSkipped = (lessonLevel: string | undefined) => {
     if (!assignedLevel || !lessonLevel) return false;
     const uLvl = assignedLevel.toLowerCase();
     const lLvl = lessonLevel.toLowerCase();
-    if (uLvl === 'intermediate' && lLvl === 'beginner') return true;
-    if (uLvl === 'advanced' && (lLvl === 'beginner' || lLvl === 'intermediate')) return true;
+    if (uLvl === "intermediate" && lLvl === "beginner") return true;
+    if (uLvl === "advanced" && (lLvl === "beginner" || lLvl === "intermediate"))
+      return true;
     return false;
   };
 
   const getLessonStatus = (lesson: Lesson, index: number) => {
-    // ATURAN 1: WAJIB PRE-TEST
     if (!hasTakenPretest) return "locked";
-
-    // 2. Cek Manual Completed
     if (completedLessons.includes(lesson.id)) return "completed";
-
-    // 3. Cek Auto-Skipped
     if (isLessonSkipped(lesson.difficulty_level)) return "completed";
-
-    // 4. Logika Unlock Berurutan
     if (index === 0) return "in-progress";
-    
+
     const prevLesson = sortedLessons[index - 1];
-    const isPrevDone = completedLessons.includes(prevLesson.id) || isLessonSkipped(prevLesson.difficulty_level);
-    
+    const isPrevDone =
+      completedLessons.includes(prevLesson.id) ||
+      isLessonSkipped(prevLesson.difficulty_level);
+
     if (isPrevDone) return "in-progress";
-    
     return "locked";
   };
 
   const handleLessonClick = (lesson: Lesson, status: string) => {
-    if (!hasTakenPretest) {
-        return;
-    }
+    if (!hasTakenPretest) return;
     if (status === "in-progress" || status === "completed") {
       navigate(`/module/${moduleId}/lesson/${lesson.id}`);
     }
   };
 
-  // Hitung Progress Visual
   const calculateVisualProgress = () => {
-      if (sortedLessons.length === 0) return 0;
-      // Hitung yang completed manual ATAU skipped level
-      const doneCount = sortedLessons.filter(l => 
-          completedLessons.includes(l.id) || isLessonSkipped(l.difficulty_level)
-      ).length;
-      return Math.round((doneCount / sortedLessons.length) * 100);
+    if (sortedLessons.length === 0) return 0;
+    const doneCount = sortedLessons.filter(
+      (l) =>
+        completedLessons.includes(l.id) || isLessonSkipped(l.difficulty_level)
+    ).length;
+    return Math.round((doneCount / sortedLessons.length) * 100);
   };
   const progressPercent = calculateVisualProgress();
 
   return (
-    // PERUBAHAN DISINI:
-    // 1. bg-gray-50: Menyamakan background.
-    // 2. pt-24: Menambahkan jarak dari atas navbar fixed.
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-5xl">
-        <Link to="/modules">
-          <Button variant="ghost" className="mb-8">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Modules
-          </Button>
+    <div className="min-h-screen bg-[#F8FAFC] pt-24 pb-20 font-sans text-slate-800 selection:bg-indigo-500 selection:text-white">
+      {/* 1. Background Pattern (Sama seperti Modules page) */}
+      <div className="fixed inset-0 h-full w-full bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none -z-10" />
+
+      <div className="container mx-auto px-4 lg:px-8 max-w-6xl">
+        {/* Breadcrumb / Back */}
+        <Link
+          to="/modules"
+          className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-slate-900 mb-8 transition-all group"
+        >
+          <div className="p-2 rounded-full bg-white border border-slate-200 mr-3 group-hover:border-slate-300 shadow-sm group-hover:shadow-md transition-all">
+            <ArrowLeft className="w-4 h-4" />
+          </div>
+          Back to All Modules
         </Link>
 
-        {/* Module Header */}
-        <div className="mb-12">
-          <div className={`inline-block w-16 h-16 rounded-2xl bg-gradient-to-br ${module.color} flex items-center justify-center shadow-lg mb-6`}>
-            <BookOpen className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">{module.title}</h1>
-          <p className="text-xl text-muted-foreground mb-6">{module.description}</p>
+        {/* --- HERO HEADER SECTION (Dark Theme) --- */}
+        <div className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 md:p-12 mb-10 shadow-2xl shadow-slate-900/20 text-white">
+          {/* Decorative Blobs */}
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-600 rounded-full blur-3xl opacity-25 animate-pulse" />
+          <div className="absolute bottom-0 left-0 -ml-10 -mb-10 w-64 h-64 bg-violet-600 rounded-full blur-3xl opacity-20" />
 
-          <div className="flex items-center gap-6 mb-6">
-            <Badge className="text-base px-4 py-1">{sortedLessons.length} Lessons</Badge>
-            <span className="text-muted-foreground text-sm md:text-base">Complete all lessons to earn your certificate</span>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="font-semibold">Overall Progress</span>
-              <span className="text-primary font-bold">{progressPercent}%</span>
+          <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
+            {/* Icon Large */}
+            <div
+              className={`w-24 h-24 rounded-[1.5rem] bg-gradient-to-br ${module.color} p-0.5 shadow-2xl shrink-0 hidden md:block`}
+            >
+              <div className="w-full h-full bg-white/10 backdrop-blur-md rounded-[1.3rem] flex items-center justify-center border border-white/10">
+                <BookOpen className="w-10 h-10 text-white" />
+              </div>
             </div>
-            <Progress value={progressPercent} className="h-3" />
+
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-4">
+                {/* Mobile Icon */}
+                <div
+                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${module.color} flex md:hidden items-center justify-center shadow-lg`}
+                >
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+                {/* Level Badge Pill */}
+                {hasTakenPretest && assignedLevel && (
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm font-medium text-blue-200 shadow-inner">
+                    <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+                    Start Level:{" "}
+                    <span className="text-white font-bold uppercase tracking-wider">
+                      {assignedLevel}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight mb-4">
+                {module.title}
+              </h1>
+              <p className="text-slate-300 text-lg leading-relaxed max-w-2xl">
+                {module.description}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* --- PRE-TEST SECTION --- */}
-        {!hasTakenPretest && (
-          <Card className="mb-10 border-primary bg-blue-50/50">
-            <CardContent className="flex flex-col md:flex-row items-center justify-between p-6 gap-4">
-              <div>
-                <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
-                  <BrainCircuit className="w-6 h-6" />
-                  Cek Level Kamu!
-                </h3>
-                <p className="text-muted-foreground mt-1">
-                  Wajib ikuti tes singkat sebelum mengakses materi. Jika nilai tinggi, materi dasar otomatis terlewati!
-                </p>
-              </div>
-              <Button 
-                size="lg" 
-                onClick={() => navigate(`/module/${module.id}/pre-test`)} 
-                className="whitespace-nowrap shadow-md"
-              >
-                Mulai Pre-Test
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* --- LEVEL INFO --- */}
-        {hasTakenPretest && assignedLevel && (
-          <div className="mb-8 p-4 bg-white border shadow-sm rounded-lg flex items-center gap-3 animate-in fade-in duration-500">
-            <Trophy className="h-6 w-6 text-yellow-500" />
-            <span className="text-sm md:text-base">
-              Start Level: <span className={`uppercase font-bold px-2 py-0.5 rounded text-xs border ${getLevelBadgeColor(assignedLevel)} mx-1`}>{assignedLevel}</span>
-            </span>
-          </div>
-        )}
-
-        {/* Lessons List */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold mb-6">Course Content</h2>
-          {sortedLessons.map((lesson, index) => {
-            const status = getLessonStatus(lesson, index);
-            const skipped = isLessonSkipped(lesson.difficulty_level);
-
-            return (
-              <Card
-                key={lesson.id}
-                className={`card-hover border-2 transition-all duration-300 ${
-                  status === "locked" ? "opacity-60 cursor-not-allowed bg-slate-50" : "cursor-pointer bg-white hover:border-primary"
-                }`}
-                onClick={() => handleLessonClick(lesson, status)}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      {/* Icon */}
-                      {status === "completed" ? (
-                        skipped ? <div title="Skipped"><SkipForward className="w-5 h-5 text-blue-500"/></div> : <CheckCircle2 className="w-5 h-5 text-secondary" />
-                      ) : status === "in-progress" ? (
-                        <PlayCircle className="w-5 h-5 text-primary animate-pulse" />
-                      ) : (
-                        <Lock className="w-5 h-5 text-muted-foreground" />
-                      )}
-                      
+        <div className="grid lg:grid-cols-12 gap-8 items-start">
+          {/* --- LEFT COLUMN: CONTENT (8 cols) --- */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* --- PRE-TEST CTA CARD --- */}
+            {!hasTakenPretest && (
+              <div className="relative group overflow-hidden rounded-[2rem] p-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 shadow-xl shadow-blue-500/20">
+                <div className="bg-white rounded-[1.8rem] p-6 sm:p-8 relative z-10">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div className="flex items-start gap-5">
+                      <div className="p-4 bg-blue-50 rounded-2xl shrink-0">
+                        <BrainCircuit className="w-8 h-8 text-blue-600" />
+                      </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                            <CardTitle className="text-lg">{lesson.title}</CardTitle>
-                            {lesson.difficulty_level && (
-                                <Badge variant="outline" className={`text-[10px] h-5 px-1.5 font-normal uppercase ${getLevelBadgeColor(lesson.difficulty_level)}`}>
-                                    {lesson.difficulty_level}
-                                </Badge>
-                            )}
-                        </div>
-                        <CardDescription className="flex items-center gap-2">
-                            {lesson.duration}
-                            {skipped && status === 'completed' && <span className="text-blue-600 text-xs font-medium">• Skipped (Auto-pass)</span>}
-                        </CardDescription>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">
+                          Personalize Your Path
+                        </h3>
+                        <p className="text-slate-500 text-sm leading-relaxed max-w-sm">
+                          Take a quick adaptive test. If you score high, we'll
+                          unlock advanced lessons automatically!
+                        </p>
                       </div>
                     </div>
                     <Button
-                      disabled={status === "locked"}
-                      variant={status === "completed" ? "outline" : "default"}
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLessonClick(lesson, status);
-                      }}
+                      onClick={() => navigate(`/module/${module.id}/pre-test`)}
+                      className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-blue-600 text-white font-bold shadow-lg transition-all hover:scale-[1.02] hover:shadow-blue-500/25 shrink-0 w-full sm:w-auto"
                     >
-                      {status === "locked" && "Locked"}
-                      {status === "in-progress" && "Start"}
-                      {status === "completed" && "Review"}
+                      Start Pre-Test
                     </Button>
                   </div>
-                </CardHeader>
-              </Card>
-            );
-          })}
-        </div>
+                </div>
+              </div>
+            )}
 
-        {/* Certificate Section */}
-        {progressPercent === 100 && (
-          <Card className="mt-12 bg-gradient-to-br from-secondary/10 to-accent/10 border-2 border-secondary">
-            <CardContent className="p-8 text-center">
-              <Trophy className="w-16 h-16 mx-auto mb-4 text-accent" />
-              <h3 className="text-2xl font-bold mb-3">🎉 Congratulations!</h3>
-              <p className="text-muted-foreground mb-6">
-                You've completed this module. Download your certificate to showcase your achievement.
-              </p>
-              <Button className="btn-gradient-success">Download Certificate</Button>
-            </CardContent>
-          </Card>
-        )}
+            {/* --- LESSONS TIMELINE --- */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 sm:p-8 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                  <MoreVertical className="w-6 h-6 text-slate-300" />
+                  Module Syllabus
+                </h2>
+                <span className="px-3 py-1 rounded-lg bg-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  {sortedLessons.length} Lessons
+                </span>
+              </div>
+
+              <div className="relative space-y-6">
+                {/* Vertical Line Connector */}
+                <div className="absolute left-[35px] top-6 bottom-6 w-[2px] bg-slate-100 hidden sm:block" />
+
+                {sortedLessons.map((lesson, index) => {
+                  const status = getLessonStatus(lesson, index);
+                  const skipped = isLessonSkipped(lesson.difficulty_level);
+
+                  return (
+                    <div
+                      key={lesson.id}
+                      onClick={() => handleLessonClick(lesson, status)}
+                      className={`group relative flex gap-5 sm:gap-6 items-center p-4 rounded-[1.5rem] border-2 transition-all duration-300
+                        ${
+                          status === "locked"
+                            ? "border-transparent bg-slate-50/50 opacity-60 grayscale cursor-not-allowed"
+                            : "border-slate-100 bg-white hover:border-blue-100 hover:bg-blue-50/30 hover:shadow-lg hover:shadow-blue-500/5 cursor-pointer hover:-translate-y-1"
+                        }
+                        ${
+                          status === "in-progress"
+                            ? "ring-2 ring-blue-500/10 border-blue-500/20"
+                            : ""
+                        }
+                      `}
+                    >
+                      {/* Status Icon Marker (Glassy Style) */}
+                      <div
+                        className={`
+                          relative z-10 w-[70px] h-[70px] rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 border
+                          ${
+                            status === "completed"
+                              ? "bg-emerald-50 border-emerald-100"
+                              : status === "in-progress"
+                              ? "bg-blue-600 border-blue-500 shadow-blue-500/30"
+                              : "bg-white border-slate-100"
+                          }
+                      `}
+                      >
+                        {status === "completed" ? (
+                          skipped ? (
+                            <SkipForward className="w-8 h-8 text-emerald-500" />
+                          ) : (
+                            <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                          )
+                        ) : status === "in-progress" ? (
+                          <PlayCircle className="w-8 h-8 text-white fill-white/20" />
+                        ) : (
+                          <Lock className="w-6 h-6 text-slate-300" />
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
+                          <h3
+                            className={`text-lg font-bold truncate pr-4 ${
+                              status === "locked"
+                                ? "text-slate-400"
+                                : "text-slate-800"
+                            }`}
+                          >
+                            {lesson.title}
+                          </h3>
+                          {/* Difficulty Badge */}
+                          {lesson.difficulty_level && (
+                            <Badge
+                              className={`w-fit h-6 text-[10px] uppercase tracking-wider font-bold shadow-none ${getLevelBadgeColor(
+                                lesson.difficulty_level
+                              )}`}
+                            >
+                              {lesson.difficulty_level}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-slate-400" />
+                            {lesson.duration}
+                          </div>
+                          {skipped && status === "completed" && (
+                            <span className="text-blue-600 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded text-xs font-bold border border-blue-100">
+                              <Sparkles className="w-3 h-3" /> Auto-Skipped
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Arrow Action (Desktop) */}
+                      {status !== "locked" && (
+                        <div className="hidden sm:flex self-center w-10 h-10 rounded-full bg-slate-50 items-center justify-center text-slate-300 group-hover:bg-blue-500 group-hover:text-white transition-colors ml-2">
+                          <ChevronRight className="w-5 h-5" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* --- RIGHT COLUMN: STICKY SIDEBAR (4 cols) --- */}
+          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-28">
+            {/* Progress Card */}
+            <Card className="rounded-[2rem] border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden bg-white">
+              <div className="bg-slate-50/50 p-6 border-b border-slate-100 backdrop-blur-sm">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <BarChart className="w-5 h-5 text-blue-500" />
+                  Learning Progress
+                </h3>
+              </div>
+              <div className="p-8">
+                <div className="flex items-end justify-between mb-4">
+                  <span className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600">
+                    {progressPercent}%
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Complete
+                  </span>
+                </div>
+
+                <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden mb-8">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm py-3 border-b border-slate-50">
+                    <span className="text-slate-500 font-medium">Lessons</span>
+                    <span className="font-bold text-slate-900">
+                      {
+                        sortedLessons.filter(
+                          (l) =>
+                            completedLessons.includes(l.id) ||
+                            isLessonSkipped(l.difficulty_level)
+                        ).length
+                      }
+                      <span className="text-slate-300 mx-1">/</span>
+                      {sortedLessons.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm py-3 border-b border-slate-50">
+                    <span className="text-slate-500 font-medium">
+                      Est. Time
+                    </span>
+                    <span className="font-bold text-slate-900">~45 Mins</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Certificate Teaser */}
+              <div
+                className={`p-6 text-center transition-colors duration-300 ${
+                  progressPercent === 100
+                    ? "bg-gradient-to-br from-emerald-400 to-teal-500"
+                    : "bg-slate-50"
+                }`}
+              >
+                {progressPercent === 100 ? (
+                  <div className="text-white">
+                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+                      <Trophy className="w-7 h-7 text-yellow-300 fill-yellow-300" />
+                    </div>
+                    <h4 className="font-bold text-lg mb-1">
+                      Certificate Unlocked!
+                    </h4>
+                    <p className="text-white/80 text-sm mb-4">
+                      You've mastered this module.
+                    </p>
+                    <Button className="w-full bg-white text-emerald-600 hover:bg-emerald-50 font-bold rounded-xl shadow-lg border-0">
+                      Download Certificate
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 bg-slate-200/50 rounded-full flex items-center justify-center mb-3">
+                      <Trophy className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">
+                      Complete to unlock certificate
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

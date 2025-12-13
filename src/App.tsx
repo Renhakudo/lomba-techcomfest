@@ -15,7 +15,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import Protected from "./components/Protected";
 import ProfilePage from "./pages/ProfilePage";
 import LessonDetail from "./pages/LessonDetail";
-import PreTest from "./pages/PreText";
+import PreTest from "./pages/PreTest";
 import AIAssistant from "./pages/AIAssistent";
 
 

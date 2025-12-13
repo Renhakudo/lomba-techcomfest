@@ -18,6 +18,8 @@ const Layout = ({ children }: LayoutProps) => {
     "/dashboard",
     "/modules",
     "/aiassistent",
+    "/login",
+    "/register"
   ];
 
   // cek apakah pathname dimulai dengan salah satu route di atas
