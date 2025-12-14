@@ -22,9 +22,9 @@ const Navigation = () => {
   const publicLinks = [];
 
   const privateLinks = [
-    { name: "Modul Ajar", path: "/modules", icon: BookOpen },
-    { name: "Ruang Proyek", path: "/projects", icon: Rocket }, // MENU BARU
-    { name: "Dasbor", path: "/dashboard", icon: LayoutDashboard },
+    { to: "/modules", label: "Modul", icon: BookOpen },
+    { to: "/dashboard", label: "Dasbor", icon: LayoutDashboard },
+    { to: "/projects", label: "Proyek", icon: Rocket },
   ];
 
   const navLinks = user ? privateLinks : publicLinks;
