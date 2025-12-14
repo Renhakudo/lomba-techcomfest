@@ -5,14 +5,20 @@ const { createClient } = require('@supabase/supabase-js');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-// [BARU] Tentukan URL dasar halaman materi di frontend kamu
-// Jika materimu dibuka di "http://localhost:8080/materi/1", biarkan seperti ini.
-const FRONTEND_BASE_URL = "http://localhost:8080/module"; 
+// --- PENGATURAN URL FRONTEND (PENTING) ---
+// Di Vercel nanti, tambahkan Environment Variable: FRONTEND_URL = https://link-web-kamu.vercel.app
+// Jika tidak ada, dia akan pakai localhost (untuk testing di laptop)
+const FRONTEND_BASE_URL = (process.env.FRONTEND_URL || "http://localhost:8080") + "/module";
 
-// Middleware
-app.use(cors());
+// --- MIDDLEWARE (CORS UPDATE) ---
+// Kita izinkan semua origin (*) sementara agar saat lomba tidak ada error 'Blocked by CORS'
+app.use(cors({
+    origin: "*", 
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
 // --- 1. INISIALISASI SUPABASE ---
@@ -29,8 +35,8 @@ let geminiModel = null;
 if (process.env.GEMINI_API_KEY) {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // Menggunakan model flash yang cepat (Sesuai kodemu)
-    geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // Catatan: Pastikan nama model benar. Biasanya 'gemini-1.5-flash' atau 'gemini-2.0-flash-exp'
+    geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
     console.log('✅ Gemini AI berhasil diinisialisasi');
   } catch (error) {
     console.error('❌ Gagal inisialisasi Gemini:', error.message);
@@ -39,7 +45,7 @@ if (process.env.GEMINI_API_KEY) {
   console.warn('⚠️ GEMINI_API_KEY tidak ditemukan di .env');
 }
 
-// --- 3. SYSTEM PROMPT (OTAK CHATBOT) ---
+// --- 3. SYSTEM PROMPT ---
 const createSystemPrompt = (modulesListText) => {
   return `
   KAMU ADALAH "SkillUp Assistant" UNTUK SEBUAH PLATFORM BELAJAR WEB.
@@ -54,8 +60,8 @@ const createSystemPrompt = (modulesListText) => {
   1. Jawab dengan bahasa Indonesia yang santai, suportif, dan ramah (seperti mentor).
   2. Jangan terpaku pada kata kunci persis. Pahami maksud user.
   3. [PENTING] Jika menyarankan modul, GUNAKAN FORMAT LINK MARKDOWN.
-     Formatnya: [Judul Modul](Link URL)
-     Contoh output: "Kamu bisa belajar ini di modul [HTML Dasar](http://link-tadi) ya."
+      Formatnya: [Judul Modul](Link URL)
+      Contoh output: "Kamu bisa belajar ini di modul [HTML Dasar](http://link-tadi) ya."
   4. JANGAN menyarankan materi di luar platform ini.
   5. Jika modul tidak ditemukan, minta maaf dan tawarkan modul terdekat.
   `;
@@ -64,6 +70,11 @@ const createSystemPrompt = (modulesListText) => {
 // --- 4. ENDPOINT HEALTH CHECK ---
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', service: 'SkillUp Backend Running' });
+});
+
+// Root endpoint biar ga 404 kalau dibuka langsung
+app.get('/', (req, res) => {
+    res.send("SkillUp Backend is Live!");
 });
 
 // --- 5. ENDPOINT CHAT UTAMA ---
@@ -78,7 +89,6 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // A. AMBIL DATA DARI SUPABASE
-    // [EDIT] Kita tambah ambil 'id' agar bisa bikin link
     const { data: modules, error: dbError } = await supabase
       .from('modules')
       .select('id, title, description'); 
@@ -88,11 +98,11 @@ app.post('/api/chat', async (req, res) => {
       return res.status(500).json({ success: false, response: "Maaf, database sedang gangguan." });
     }
 
-    // Format daftar modul jadi teks rapi dengan LINK
+    // Format daftar modul
     let modulesContext = "Belum ada modul tersedia.";
     if (modules && modules.length > 0) {
       modulesContext = modules.map((m, idx) => {
-        // [EDIT] Gabungkan Base URL dengan ID
+        // Menggunakan URL dinamis
         const link = `${FRONTEND_BASE_URL}/${m.id}`;
         return `${idx + 1}. Modul: "${m.title}"\n   Link: ${link}\n   Isi: ${m.description}`;
       }).join('\n\n');
@@ -139,10 +149,17 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// --- 6. JALANKAN SERVER ---
-app.listen(PORT, () => {
-  console.log('\n' + '='.repeat(50));
-  console.log(`🚀 BACKEND BERJALAN DI: http://localhost:${PORT}`);
-  console.log(`🔗 Cek status: http://localhost:${PORT}/api/health`);
-  console.log('='.repeat(50) + '\n');
-});
+// --- 6. KONFIGURASI SERVER (VERCEL COMPATIBLE) ---
+// Hanya jalankan app.listen kalau di local (bukan production Vercel)
+if (require.main === module) {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log('\n' + '='.repeat(50));
+        console.log(`🚀 BACKEND LOCAL BERJALAN DI: http://localhost:${PORT}`);
+        console.log(`🔗 Cek status: http://localhost:${PORT}/api/health`);
+        console.log('='.repeat(50) + '\n');
+    });
+}
+
+// WAJIB: Export app agar Vercel bisa menjalankannya
+module.exports = app;
