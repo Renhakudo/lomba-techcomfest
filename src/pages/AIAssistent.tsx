@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
+import Swal from 'sweetalert2';
 import { 
   Send, 
   Bot, 
@@ -206,18 +207,41 @@ const AIAssistant = () => {
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
-  const clearChat = () => {
-    if(window.confirm("Hapus semua riwayat percakapan?")) {
-        localStorage.removeItem(STORAGE_KEY);
-        setMessages([{
-            id: 1,
-            text: `Halo, ${dbUsername}! Percakapan baru dimulai. Ada yang bisa saya bantu?`,
-            sender: 'bot',
-            timestamp: new Date()
-        }]);
-        setError(null);
+const clearChat = () => {
+  Swal.fire({
+    title: 'Hapus Riwayat?',
+    text: "Semua percakapan akan hilang permanen!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444', // Merah (Warna danger Tailwind)
+    cancelButtonColor: '#6b7280', // Abu-abu (Netral)
+    confirmButtonText: 'Ya, Hapus!',
+    cancelButtonText: 'Batal',
+    reverseButtons: true // Posisi tombol dibalik biar lebih ergonomis
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // --- LOGIKA ASLI KAMU MULAI DARI SINI ---
+      localStorage.removeItem(STORAGE_KEY);
+      setMessages([{
+        id: 1,
+        text: `Halo, ${dbUsername}! Percakapan baru dimulai. Ada yang bisa saya bantu?`,
+        sender: 'bot',
+        timestamp: new Date()
+      }]);
+      setError(null);
+      // --- LOGIKA ASLI SELESAI ---
+
+      // Feedback visual tambahan (biar makin keren)
+      Swal.fire({
+        icon: 'success',
+        title: 'Terhapus!',
+        text: 'Chat berhasil direset.',
+        timer: 1500, // Otomatis tutup dalam 1.5 detik
+        showConfirmButton: false
+      });
     }
-  };
+  });
+};
 
   const formatTime = (date: Date) => {
     if (!(date instanceof Date) || isNaN(date.getTime())) return '';

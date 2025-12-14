@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Camera, User, AtSign, Save, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient"; // Pastikan path import ini sesuai struktur foldermu
 import { useNavigate } from "react-router-dom";
+import Swal from 'sweetalert2';
 
 export default function EditProfile() {
   const [profile, setProfile] = useState<any>(null);
@@ -77,26 +78,49 @@ export default function EditProfile() {
     }
   }
 
-  async function updateProfile() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+async function updateProfile() {
+  const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) return;
+  if (!user) return;
 
-    try {
-        await supabase
-        .from("profiles")
-        .update({ name, username })
-        .eq("id", user.id);
-        
-        alert("Success! Profile updated.");
-        navigate("/dashboard");
-    } catch (error) {
-        alert("Failed to update profile.");
+  // Tampilkan Loading Spinner sebelum proses dimulai
+  Swal.fire({
+    title: 'Menyimpan...',
+    text: 'Mohon tunggu sebentar',
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading(); // Animasi loading bawaan SweetAlert
     }
-  }
+  });
 
+  try {
+    await supabase
+      .from("profiles")
+      .update({ name, username })
+      .eq("id", user.id);
+    
+    // Sukses! Ganti alert biasa dengan ini
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil!',
+      text: 'Profil kamu sudah diperbarui.',
+      confirmButtonColor: '#4F46E5', // Ungu SkillUp (sesuai header)
+      confirmButtonText: 'Mantap'
+    }).then(() => {
+      // Redirect jalan setelah user klik tombol "Mantap"
+      navigate("/dashboard");
+    });
+
+  } catch (error) {
+    // Error!
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal',
+      text: 'Terjadi kesalahan saat update profil.',
+      confirmButtonColor: '#4F46E5'
+    });
+  }
+}
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
