@@ -4,6 +4,7 @@ import {
   Menu,
   X,
   BookOpen,
+  Rocket,
   LayoutDashboard
 } from "lucide-react";
 import { useState } from "react";
@@ -21,8 +22,9 @@ const Navigation = () => {
   const publicLinks = [];
 
   const privateLinks = [
-    { to: "/modules", label: "Modules", icon: BookOpen },
-    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { name: "Modul Ajar", path: "/modules", icon: BookOpen },
+    { name: "Ruang Proyek", path: "/projects", icon: Rocket }, // MENU BARU
+    { name: "Dasbor", path: "/dashboard", icon: LayoutDashboard },
   ];
 
   const navLinks = user ? privateLinks : publicLinks;

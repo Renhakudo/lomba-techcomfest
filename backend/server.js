@@ -9,7 +9,7 @@ const app = express();
 // --- PENGATURAN URL FRONTEND (PENTING) ---
 // Di Vercel nanti, tambahkan Environment Variable: FRONTEND_URL = https://link-web-kamu.vercel.app
 // Jika tidak ada, dia akan pakai localhost (untuk testing di laptop)
-const FRONTEND_BASE_URL = (process.env.FRONTEND_URL || "http://localhost:8080") + "/module";
+const FRONTEND_BASE_URL = (process.env.FRONTEND_URL || "https://tera-techcomfest.vercel.app") + "/module";
 
 // --- MIDDLEWARE (CORS UPDATE) ---
 // Kita izinkan semua origin (*) sementara agar saat lomba tidak ada error 'Blocked by CORS'
@@ -30,19 +30,30 @@ const supabase = createClient(
   process.env.VITE_SUPABASE_ANON_KEY || ''
 );
 
-// --- 2. INISIALISASI GEMINI AI ---
-let geminiModel = null;
-if (process.env.GEMINI_API_KEY) {
+// --- 2. INISIALISASI GEMINI AI (MULTI-KEY SUPPORT) ---
+// Kita siapkan array model untuk redundansi (Cadangan)
+const geminiModels = [];
+const apiKeys = [
+    process.env.GEMINI_API_KEY,    // Prioritas 1
+    process.env.GEMINI_API_KEY_2,  // Cadangan 1
+    process.env.GEMINI_API_KEY_3   // Cadangan 2
+].filter(key => !!key); // Filter key yang tidak kosong/undefined
+
+if (apiKeys.length > 0) {
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // Catatan: Pastikan nama model benar sesuai akses API Anda (misal: 'gemini-1.5-flash')
-    geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
-    console.log('✅ Gemini AI berhasil diinisialisasi');
+    apiKeys.forEach((key, index) => {
+        const genAI = new GoogleGenerativeAI(key);
+        // Inisialisasi model untuk setiap key
+        // Pastikan nama model valid (misal: gemini-2.5-flash atau gemini-2.0-flash-exp)
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
+        geminiModels.push(model);
+        console.log(`✅ Gemini Model ${index + 1} berhasil diinisialisasi`);
+    });
   } catch (error) {
     console.error('❌ Gagal inisialisasi Gemini:', error.message);
   }
 } else {
-  console.warn('⚠️ GEMINI_API_KEY tidak ditemukan di .env');
+  console.warn('⚠️ Tidak ada GEMINI_API_KEY yang ditemukan di .env');
 }
 
 // --- 3. SYSTEM PROMPT (UPDATED FOR TERA) ---
@@ -108,9 +119,8 @@ app.post('/api/chat', async (req, res) => {
       }).join('\n\n');
     }
 
-    // B. LOGIKA AI (GEMINI)
-    if (geminiModel) {
-      try {
+    // B. LOGIKA AI (GEMINI DENGAN FAILOVER / CADANGAN)
+    if (geminiModels.length > 0) {
         const finalPrompt = `
           ${createSystemPrompt(modulesContext)}
           
@@ -120,23 +130,35 @@ app.post('/api/chat', async (req, res) => {
           JAWABAN TERA ASSISTANT:
         `;
 
-        const result = await geminiModel.generateContent(finalPrompt);
-        const responseAI = result.response.text();
-        
-        console.log('✅ AI Menjawab');
-        return res.json({ success: true, response: responseAI, source: 'gemini' });
+        // Loop melalui model yang tersedia (Prioritas -> Cadangan)
+        for (let i = 0; i < geminiModels.length; i++) {
+            try {
+                console.log(`🤖 Mencoba generate dengan API Key ke-${i + 1}...`);
+                const model = geminiModels[i];
+                
+                const result = await model.generateContent(finalPrompt);
+                const responseAI = result.response.text();
+                
+                console.log(`✅ AI Menjawab (Sukses dengan API Key ke-${i + 1})`);
+                
+                // Jika sukses, langsung kirim response dan hentikan loop
+                return res.json({ success: true, response: responseAI, source: 'gemini' });
 
-      } catch (aiError) {
-        console.error('❌ Gemini Error:', aiError.message);
-        // Lanjut ke fallback
-      }
+            } catch (aiError) {
+                console.warn(`⚠️ Gagal dengan API Key ke-${i + 1}:`, aiError.message);
+                // Loop akan otomatis lanjut ke indeks berikutnya (i++) jika ada
+            }
+        }
+        
+        console.error('❌ Semua API Key Gemini gagal memberikan respon.');
+        // Jika loop selesai dan tidak ada yang berhasil, kode akan lanjut ke bagian Fallback di bawah (C)
     }
 
-    // C. FALLBACK
-    console.log('⚠️ Menggunakan Fallback Response');
+    // C. FALLBACK (Jika Gemini Error Semua)
+    console.log('⚠️ Menggunakan Fallback Response Manual');
     res.json({
       success: true,
-      response: "Mohon maaf, asisten Tera sedang istirahat sejenak. Namun, Anda tetap bisa mengeksplorasi materi lengkap kami melalui menu 'Modul'. Semangat belajar!",
+      response: "Mohon maaf, asisten Tera sedang istirahat sejenak (Gangguan pada server AI). Namun, Anda tetap bisa mengeksplorasi materi lengkap kami melalui menu 'Modul'. Semangat belajar!",
       source: 'fallback'
     });
 

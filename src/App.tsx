@@ -17,6 +17,8 @@ import ProfilePage from "./pages/ProfilePage";
 import LessonDetail from "./pages/LessonDetail";
 import PreTest from "./pages/PreTest";
 import AIAssistant from "./pages/AIAssistent";
+import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 
 
 
@@ -40,6 +42,8 @@ const App = () => (
               <Route path="/module/:moduleId" element={<Protected><ModuleDetail /></Protected>} />
               <Route path="/module/:moduleId/lesson/:lessonId" element={<LessonDetail />} />
               <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/project/:projectId" element={<ProjectDetail />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/profilepage" element={<ProfilePage />} />
