@@ -23,8 +23,8 @@ const Navigation = () => {
 
   const privateLinks = [
     { to: "/modules", label: "Modul", icon: BookOpen },
-    { to: "/dashboard", label: "Dasbor", icon: LayoutDashboard },
     { to: "/projects", label: "Proyek", icon: Rocket },
+    { to: "/dashboard", label: "Dasbor", icon: LayoutDashboard },
   ];
 
   const navLinks = user ? privateLinks : publicLinks;
