@@ -30,9 +30,9 @@ const ChatBotBubble = () => {
   const [showGreeting, setShowGreeting] = useState(false);
   
   // State untuk nama user dari database
-  const [dbUsername, setDbUsername] = useState<string>("Teman");
+  const [dbUsername, setDbUsername] = useState<string>("Sobat");
 
-  const STORAGE_KEY = 'skillup_chat_history';
+  const STORAGE_KEY = 'tera_chat_history_bubble'; // Key storage disesuaikan
 
   // --- Ambil Nama dari Tabel Profiles ---
   useEffect(() => {
@@ -58,7 +58,7 @@ const ChatBotBubble = () => {
           displayName = session.user.email.split('@')[0];
         }
 
-        setDbUsername(displayName || "Teman");
+        setDbUsername(displayName || "Sobat");
       }
     };
 
@@ -81,7 +81,8 @@ const ChatBotBubble = () => {
     return [
       {
         id: 1,
-        text: "Halo! Saya SkillUp AI Assistant. Saya di sini untuk membantu Anda mengembangkan soft skills seperti komunikasi, leadership, dan kerja tim. Ada yang bisa saya bantu hari ini?",
+        // Pesan pembuka disesuaikan dengan Tera
+        text: "Halo! Saya Asisten Tera. Ada yang bisa saya bantu terkait modul pembelajaran atau materi hari ini?",
         sender: 'bot',
         timestamp: new Date()
       }
@@ -142,11 +143,11 @@ const ChatBotBubble = () => {
         setError(null);
       } else {
         setConnectionStatus('disconnected');
-        setError('Backend tidak responsif');
+        setError('Tera sedang tidak dapat terhubung ke server.');
       }
     } catch (err: any) {
       setConnectionStatus('disconnected');
-      setError('Backend tidak terhubung.');
+      setError('Gagal terhubung ke otak Tera.');
     }
   };
 
@@ -171,7 +172,7 @@ const ChatBotBubble = () => {
     try {
       const response = await axios.post(`${BACKEND_URL}/api/chat`, {
         message: inputText,
-        sessionId: 'skillup-session'
+        sessionId: 'tera-session-bubble'
       });
 
       let botResponse = '';
@@ -179,7 +180,7 @@ const ChatBotBubble = () => {
         botResponse = response.data.response;
       } else if (response.data.fallbackResponse) {
         botResponse = response.data.fallbackResponse;
-        setError(`Menggunakan fallback: ${response.data.error}`);
+        setError(`Mode Fallback: ${response.data.error}`);
       } else {
         throw new Error(response.data.error || 'Unknown error');
       }
@@ -194,14 +195,14 @@ const ChatBotBubble = () => {
       
     } catch (err: any) {
       console.error('Error sending message:', err);
-      let errorMessage = 'Maaf, terjadi kesalahan.';
+      let errorMessage = 'Maaf, ada gangguan teknis.';
       let detailedError = err.message;
       if (err.response?.data) {
         detailedError = err.response.data.error || err.response.data.message;
       }
       const fallbackMessage: Message = {
         id: messages.length + 2,
-        text: `Saya mengalami kesalahan: "${detailedError}".`,
+        text: `Waduh, Tera pusing nih: "${detailedError}". Coba tanya lagi nanti ya!`,
         sender: 'bot',
         timestamp: new Date()
       };
@@ -221,10 +222,10 @@ const ChatBotBubble = () => {
 
   const handleQuickAction = (topic: string) => {
     const quickMessages: Record<string, string> = {
-      'communication': 'Bagaimana cara meningkatkan kemampuan komunikasi?',
-      'leadership': 'Apa karakteristik pemimpin efektif?',
-      'time': 'Tips manajemen waktu',
-      'teamwork': 'Cara membangun kerjasama tim solid'
+      'ct_foundations': 'Jelaskan konsep Berpikir Komputasional secara sederhana.',
+      'python_start': 'Bagaimana cara memulai belajar Python?',
+      'ai_ethics': 'Apa saja etika AI yang perlu diajarkan ke siswa?',
+      'scratch_projects': 'Ide proyek Scratch untuk pemula.'
     };
     setInputText(quickMessages[topic] || topic);
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -234,7 +235,7 @@ const ChatBotBubble = () => {
     localStorage.removeItem(STORAGE_KEY);
     setMessages([{
         id: 1,
-        text: `Halo, ${dbUsername}! Percakapan baru dimulai. Ada yang bisa saya bantu?`,
+        text: `Halo lagi, ${dbUsername}! Sesi baru dimulai. Ada yang bisa Tera bantu?`,
         sender: 'bot',
         timestamp: new Date()
     }]);
@@ -253,9 +254,20 @@ const ChatBotBubble = () => {
     let match;
     while ((match = linkRegex.exec(text)) !== null) {
       if (match.index > lastIndex) parts.push(text.substring(lastIndex, match.index));
+      
+      const linkLabel = match[1];
+      const linkUrl = match[2];
+      const isExternal = linkUrl.startsWith('http');
+
       parts.push(
-        <a key={match.index} href={match[2]} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 font-semibold underline decoration-2 underline-offset-2 transition-colors mx-1 ${sender === 'user' ? 'text-white decoration-white/50 hover:decoration-white' : 'text-blue-600 decoration-blue-300 hover:text-blue-800 hover:decoration-blue-600'}`}>
-          {match[1]} <ExternalLink size={12} />
+        <a 
+            key={match.index} 
+            href={linkUrl} 
+            target={isExternal ? "_blank" : "_self"} 
+            rel="noopener noreferrer" 
+            className={`inline-flex items-center gap-1 font-semibold underline decoration-2 underline-offset-2 transition-colors mx-1 ${sender === 'user' ? 'text-white decoration-white/50 hover:decoration-white' : 'text-blue-600 decoration-blue-300 hover:text-blue-800 hover:decoration-blue-600'}`}
+        >
+          {linkLabel} {isExternal && <ExternalLink size={12} />}
         </a>
       );
       lastIndex = linkRegex.lastIndex;
@@ -279,8 +291,8 @@ const ChatBotBubble = () => {
                 </div>
                 <div>
                     <p className="text-sm text-gray-700 font-medium leading-relaxed">
-                        Hi {dbUsername}! 👋 <br/>
-                        <span className="text-xs text-gray-500 font-normal">Butuh bantuan belajar hari ini?</span>
+                        Hai {dbUsername}! 👋 <br/>
+                        <span className="text-xs text-gray-500 font-normal">Butuh bantuan soal materi ajar? Yuk ngobrol!</span>
                     </p>
                 </div>
                 <button 
@@ -294,7 +306,6 @@ const ChatBotBubble = () => {
           )}
 
           <div 
-            // [MODIFIKASI] Animasi lebih lambat (3s)
             style={{ animationDuration: '3s' }}
             className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center cursor-pointer shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-110 transition-all duration-300 animate-bounce"
             onClick={() => { setIsOpen(true); setShowGreeting(false); }}
@@ -322,10 +333,10 @@ const ChatBotBubble = () => {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="font-bold text-lg">SkillUp Assistant</h3>
+                <h3 className="font-bold text-lg">Asisten Tera</h3>
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full animate-pulse ${connectionStatus === 'connected' ? 'bg-green-400' : connectionStatus === 'disconnected' ? 'bg-red-400' : 'bg-yellow-400'}`}></div>
-                  <p className="text-xs opacity-80">{connectionStatus === 'connected' ? 'Online' : 'Offline'}</p>
+                  <p className="text-xs opacity-80">{connectionStatus === 'connected' ? 'Siap Membantu' : 'Offline'}</p>
                 </div>
               </div>
             </div>
@@ -343,12 +354,12 @@ const ChatBotBubble = () => {
                   <AlertCircle className="h-4 w-4 text-yellow-600" />
                   <p className="text-sm text-yellow-800">
                     {connectionStatus === 'disconnected' 
-                      ? 'Backend offline, menggunakan mode lokal' 
-                      : 'Mengecek koneksi server...'}
+                      ? 'Server istirahat, mode offline.' 
+                      : 'Menghubungkan ke Tera...'}
                   </p>
                 </div>
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={checkBackendConnection}>
-                  <RefreshCw className="h-3 w-3 mr-1" /> Coba Lagi
+                  <RefreshCw className="h-3 w-3 mr-1" /> Reconnect
                 </Button>
               </div>
             </div>
@@ -366,13 +377,13 @@ const ChatBotBubble = () => {
 
           {/* Quick Actions */}
           <div className="bg-gray-50 p-3 border-b">
-            <p className="text-xs text-gray-600 mb-2 font-medium">Tanya cepat:</p>
+            <p className="text-xs text-gray-600 mb-2 font-medium">Mulai obrolan dengan:</p>
             <div className="flex flex-wrap gap-2">
               {[
-                { key: 'communication', label: '💬 Komunikasi', color: 'from-blue-500 to-blue-600' },
-                { key: 'leadership', label: '👑 Leadership', color: 'from-purple-500 to-purple-600' },
-                { key: 'time', label: '⏰ Manajemen Waktu', color: 'from-green-500 to-green-600' },
-                { key: 'teamwork', label: '🤝 Kerja Tim', color: 'from-orange-500 to-orange-600' }
+                { key: 'ct_foundations', label: '🧠 Berpikir Komputasional', color: 'from-blue-500 to-blue-600' },
+                { key: 'python_start', label: '🐍 Python Dasar', color: 'from-green-500 to-green-600' },
+                { key: 'ai_ethics', label: '🤖 Etika AI', color: 'from-purple-500 to-purple-600' },
+                { key: 'scratch_projects', label: '🎮 Proyek Scratch', color: 'from-orange-500 to-orange-600' }
               ].map(({ key, label, color }) => (
                 <button
                   key={key}
@@ -416,12 +427,12 @@ const ChatBotBubble = () => {
           {/* Input */}
           <div className="p-4 bg-white border-t">
              <div className="flex gap-2">
-                <Textarea ref={inputRef} value={inputText} onChange={e => setInputText(e.target.value)} onKeyDown={handleKeyPress} placeholder="Tanya sesuatu..." className="min-h-[44px] max-h-32 resize-none" rows={1} disabled={isTyping} />
+                <Textarea ref={inputRef} value={inputText} onChange={e => setInputText(e.target.value)} onKeyDown={handleKeyPress} placeholder="Tanya sesuatu ke Tera..." className="min-h-[44px] max-h-32 resize-none" rows={1} disabled={isTyping} />
                 <Button onClick={handleSend} disabled={!inputText.trim() || isTyping} className="bg-gradient-to-r from-blue-600 to-purple-600 h-[44px] px-4"><Send className="h-4 w-4" /></Button>
              </div>
              <div className="flex justify-between mt-2">
                 <span className="text-xs text-gray-400">{connectionStatus === 'connected' ? '🟢 Online' : '🔴 Offline'}</span>
-                <button onClick={clearChat} className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1"><RefreshCw className="h-3 w-3"/> Chat Baru</button>
+                <button onClick={clearChat} className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1"><RefreshCw className="h-3 w-3"/> Mulai Baru</button>
              </div>
           </div>
         </div>

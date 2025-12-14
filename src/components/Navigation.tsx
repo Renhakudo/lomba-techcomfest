@@ -10,12 +10,15 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 
+// 1. Import gambar dari folder assets
+// Pastikan file 'navbar-tera.png' ada di folder 'src/assets/'
+import teraLogo from "@/assets/navbar-tera.png";
+
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user } = useAuth();   // <-- cek user login
+  const { user } = useAuth();
 
-  const publicLinks = [
-  ];
+  const publicLinks = [];
 
   const privateLinks = [
     { to: "/modules", label: "Modules", icon: BookOpen },
@@ -25,21 +28,21 @@ const Navigation = () => {
   const navLinks = user ? privateLinks : publicLinks;
 
   return (
-    // PERUBAHAN DISINI:
-    // 'fixed': Membuat navbar mengambang di atas konten (tidak punya section sendiri).
-    // 'top-0 left-0 w-full': Memastikan posisi di paling atas dan lebar penuh.
-    // 'bg-card/80 backdrop-blur-lg': Memberikan efek transparan agar konten di belakangnya terlihat samar.
     <nav className="fixed top-0 left-0 w-full z-50 bg-card/80 backdrop-blur-lg border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-2 text-2xl font-bold">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center text-white shadow-glow">
-              S
-            </div>
+            {/* 2. Gunakan variabel import tadi di sini */}
+            <img 
+              src={teraLogo} 
+              alt="Tera Logo" 
+              className="w-16 h-16 object-contain hover:scale-105 transition-transform"
+            />
+            
             <span className="bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
-              SkillUp
+              
             </span>
           </NavLink>
 

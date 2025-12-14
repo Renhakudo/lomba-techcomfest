@@ -35,8 +35,8 @@ let geminiModel = null;
 if (process.env.GEMINI_API_KEY) {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // Catatan: Pastikan nama model benar. Biasanya 'gemini-1.5-flash' atau 'gemini-2.0-flash-exp'
-    geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
+    // Catatan: Pastikan nama model benar sesuai akses API Anda (misal: 'gemini-1.5-flash')
+    geminiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
     console.log('✅ Gemini AI berhasil diinisialisasi');
   } catch (error) {
     console.error('❌ Gagal inisialisasi Gemini:', error.message);
@@ -45,36 +45,36 @@ if (process.env.GEMINI_API_KEY) {
   console.warn('⚠️ GEMINI_API_KEY tidak ditemukan di .env');
 }
 
-// --- 3. SYSTEM PROMPT ---
+// --- 3. SYSTEM PROMPT (UPDATED FOR TERA) ---
 const createSystemPrompt = (modulesListText) => {
   return `
-  KAMU ADALAH "SkillUp Assistant" UNTUK SEBUAH PLATFORM BELAJAR WEB.
+  KAMU ADALAH "Tera Assistant", ASISTEN PINTAR UNTUK PLATFORM PENGEMBANGAN KOMPETENSI GURU.
   
   TUGAS UTAMA:
-  Membantu user yang bingung dengan materi belajar, dan SELALU mengarahkan mereka untuk membuka MODUL yang tersedia di database kita.
+  Membantu rekan guru atau pengguna yang membutuhkan panduan terkait materi Koding & Kecerdasan Artifisial (KKA), dan SELALU mengarahkan mereka untuk membuka MODUL yang tersedia di database kami.
 
-  DAFTAR MODUL BESERTA LINK NYATA:
+  DAFTAR MODUL TERSEDIA BESERTA LINK AKSES:
   ${modulesListText}
 
   ATURAN MENJAWAB:
-  1. Jawab dengan bahasa Indonesia yang santai, suportif, dan ramah (seperti mentor).
-  2. Jangan terpaku pada kata kunci persis. Pahami maksud user.
-  3. [PENTING] Jika menyarankan modul, GUNAKAN FORMAT LINK MARKDOWN.
-      Formatnya: [Judul Modul](Link URL)
-      Contoh output: "Kamu bisa belajar ini di modul [HTML Dasar](http://link-tadi) ya."
-  4. JANGAN menyarankan materi di luar platform ini.
-  5. Jika modul tidak ditemukan, minta maaf dan tawarkan modul terdekat.
+  1. Jawab dengan bahasa Indonesia yang profesional namun hangat, suportif, dan memotivasi (seperti rekan sejawat atau mentor yang asik).
+  2. Jangan terpaku pada kata kunci persis. Pahami konteks kebutuhan pembelajaran mereka.
+  3. [PENTING] Jika menyarankan materi, WAJIB GUNAKAN FORMAT LINK MARKDOWN.
+     Formatnya: [Judul Modul](Link URL)
+     Contoh output: "Untuk memperdalam topik ini, Ibu/Bapak bisa mempelajari modul [Dasar Pemrograman Visual](http://link-tadi) yang telah kami siapkan."
+  4. JANGAN menyarankan materi atau platform di luar ekosistem Tera.
+  5. Jika modul spesifik tidak ditemukan, minta maaf dengan sopan dan tawarkan modul yang paling relevan atau mendekati topik tersebut.
   `;
 };
 
 // --- 4. ENDPOINT HEALTH CHECK ---
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', service: 'SkillUp Backend Running' });
+  res.json({ status: 'OK', service: 'Tera Backend Running' });
 });
 
 // Root endpoint biar ga 404 kalau dibuka langsung
 app.get('/', (req, res) => {
-    res.send("SkillUp Backend is Live!");
+    res.send("Tera Backend is Live!");
 });
 
 // --- 5. ENDPOINT CHAT UTAMA ---
@@ -95,16 +95,16 @@ app.post('/api/chat', async (req, res) => {
 
     if (dbError) {
       console.error('❌ Supabase Error:', dbError.message);
-      return res.status(500).json({ success: false, response: "Maaf, database sedang gangguan." });
+      return res.status(500).json({ success: false, response: "Mohon maaf, sistem database sedang mengalami kendala." });
     }
 
     // Format daftar modul
-    let modulesContext = "Belum ada modul tersedia.";
+    let modulesContext = "Belum ada modul tersedia saat ini.";
     if (modules && modules.length > 0) {
       modulesContext = modules.map((m, idx) => {
         // Menggunakan URL dinamis
         const link = `${FRONTEND_BASE_URL}/${m.id}`;
-        return `${idx + 1}. Modul: "${m.title}"\n   Link: ${link}\n   Isi: ${m.description}`;
+        return `${idx + 1}. Modul: "${m.title}"\n   Link: ${link}\n   Deskripsi: ${m.description}`;
       }).join('\n\n');
     }
 
@@ -114,10 +114,10 @@ app.post('/api/chat', async (req, res) => {
         const finalPrompt = `
           ${createSystemPrompt(modulesContext)}
           
-          PERTANYAAN USER SEKARANG:
+          PERTANYAAN PENGGUNA SAAT INI:
           "${message}"
           
-          JAWABAN KAMU:
+          JAWABAN TERA ASSISTANT:
         `;
 
         const result = await geminiModel.generateContent(finalPrompt);
@@ -136,7 +136,7 @@ app.post('/api/chat', async (req, res) => {
     console.log('⚠️ Menggunakan Fallback Response');
     res.json({
       success: true,
-      response: "Maaf, asisten AI sedang istirahat. Tapi kamu bisa langsung cek menu 'Modul' untuk melihat materi lengkap kami ya!",
+      response: "Mohon maaf, asisten Tera sedang istirahat sejenak. Namun, Anda tetap bisa mengeksplorasi materi lengkap kami melalui menu 'Modul'. Semangat belajar!",
       source: 'fallback'
     });
 
@@ -155,7 +155,7 @@ if (require.main === module) {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
         console.log('\n' + '='.repeat(50));
-        console.log(`🚀 BACKEND LOCAL BERJALAN DI: http://localhost:${PORT}`);
+        console.log(`🚀 BACKEND TERA BERJALAN DI: http://localhost:${PORT}`);
         console.log(`🔗 Cek status: http://localhost:${PORT}/api/health`);
         console.log('='.repeat(50) + '\n');
     });

@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
   Users,
-  MessageCircle,
+  MessageCircle, // Bisa diganti icon lain jika perlu
   Lightbulb,
-  Clock,
+  Clock, // Diganti konteksnya
   Star,
   TrendingUp,
   Award,
@@ -16,6 +16,10 @@ import {
   CheckCircle2,
   Zap,
   BarChart3,
+  Code2,
+  BrainCircuit,
+  ShieldCheck,
+  LayoutTemplate,
 } from "lucide-react";
 
 // Asset imports (Pastikan path ini benar di project Anda)
@@ -76,46 +80,47 @@ const variants: {
 };
 
 /* ---------------------------
-   STATIC DATA
+   STATIC DATA (REBRANDED TO TERA & KKA)
    --------------------------- */
 const STATS = [
-  { label: "Active Learners", value: "10k+", icon: Users },
-  { label: "Modules Completed", value: "50k+", icon: CheckCircle2 },
-  { label: "Skills Mastered", value: "100+", icon: Zap },
-  { label: "Partner Companies", value: "20+", icon: BarChart3 },
+  { label: "Guru Terlatih", value: "10k+", icon: Users },
+  { label: "Modul Selesai", value: "50k+", icon: CheckCircle2 },
+  { label: "Sekolah Mitra", value: "500+", icon: Zap },
+  { label: "Partner Industri", value: "20+", icon: BarChart3 },
 ];
 
+// Mengambil 4 modul utama dari list database untuk ditampilkan di Home
 const MODULES = [
   {
-    icon: MessageCircle,
-    title: "Communication",
-    description: "Master clear, effective professional communication.",
+    icon: Lightbulb,
+    title: "Fondasi: Berpikir Komputasional",
+    description: "Pahami pola pikir penyelesaian masalah (problem solving) sebelum masuk ke teknis koding.",
     color: "from-blue-500 to-indigo-500",
-    slug: "communication",
+    slug: "computational-thinking",
     bg: "bg-blue-50/50",
   },
   {
-    icon: Users,
-    title: "Teamwork",
-    description: "Build strong team dynamics and collaboration.",
+    icon: LayoutTemplate,
+    title: "Level 1: Visual Coding (SD)",
+    description: "Belajar logika koding menggunakan blok visual (Scratch) yang menyenangkan.",
     color: "from-emerald-500 to-teal-500",
-    slug: "teamwork",
+    slug: "visual-programming",
     bg: "bg-emerald-50/50",
   },
   {
-    icon: Lightbulb,
-    title: "Problem-Solving",
-    description: "Develop critical thinking for complex challenges.",
+    icon: Code2,
+    title: "Level 2: Transisi ke Python (SMP)",
+    description: "Mengenal bahasa pemrograman teks untuk level menengah dengan studi kasus nyata.",
     color: "from-orange-500 to-amber-500",
-    slug: "problem-solving",
+    slug: "python-transition",
     bg: "bg-orange-50/50",
   },
   {
-    icon: Clock,
-    title: "Time Management",
-    description: "Achieve peak productivity and work-life balance.",
+    icon: BrainCircuit,
+    title: "AI: Machine Learning untuk Kelas",
+    description: "Cara praktis mengajarkan konsep AI dan Machine Learning tanpa koding yang rumit.",
     color: "from-pink-500 to-rose-500",
-    slug: "time-management",
+    slug: "ai-machine-learning",
     bg: "bg-pink-50/50",
   },
 ];
@@ -123,29 +128,29 @@ const MODULES = [
 const BENEFITS = [
   {
     icon: Star,
-    title: "Interactive Learning",
-    description: "Engage with scenarios designed to keep you hooked.",
+    title: "Kurikulum KKA Terbaru",
+    description: "Materi disusun spesifik untuk persiapan kurikulum Koding & Kecerdasan Artifisial.",
     span: "md:col-span-2",
     style: "bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100",
   },
   {
     icon: TrendingUp,
-    title: "Track Progress",
-    description: "Detailed analytics for your growth journey.",
+    title: "Pantau Progres",
+    description: "Analitik detail perkembangan kompetensi mengajar Anda.",
     span: "md:col-span-1",
     style: "bg-gradient-to-br from-sky-50 to-blue-50 border-sky-100",
   },
   {
     icon: Award,
-    title: "Earn Recognition",
-    description: "Collect badges validating your mastery.",
+    title: "Sertifikasi Guru",
+    description: "Dapatkan lencana & sertifikat validasi keahlian digital.",
     span: "md:col-span-1",
     style: "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100",
   },
   {
     icon: Sparkles,
-    title: "Modern Skills",
-    description: "Stay relevant with up-to-date competencies.",
+    title: "Metode Interaktif",
+    description: "Bukan sekadar teori. Simulasi langsung agar siap diterapkan di kelas.",
     span: "md:col-span-2",
     style: "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100",
   },
@@ -242,7 +247,7 @@ const Hero: React.FC = () => {
           <motion.div variants={variants.fadeUp}>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/50 backdrop-blur-sm border border-primary/20 shadow-sm text-sm font-semibold text-primary mb-4">
               <Sparkles className="w-4 h-4" />
-              <span>The Future of Soft Skills Learning</span>
+              <span>Platform Pendidikan Guru Era Digital</span>
             </div>
           </motion.div>
 
@@ -251,9 +256,9 @@ const Hero: React.FC = () => {
             variants={variants.fadeUp}
             className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.1] text-foreground"
           >
-            Unlock Your Full <br />
+            Siapkan Generasi <br />
             <span className="bg-gradient-to-r from-primary via-purple-600 to-secondary bg-clip-text text-transparent">
-              Potential Skills
+              Cerdas Digital
             </span>
           </motion.h1>
 
@@ -262,8 +267,9 @@ const Hero: React.FC = () => {
             variants={variants.fadeUp}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
           >
-            Master essential skills through our interactive, gamified platform
-            designed for the modern professional. Learn anytime, anywhere.
+            Bersama <strong>Tera</strong>, tingkatkan kompetensi guru dalam mengajarkan 
+            <strong> Koding & Kecerdasan Artifisial (KKA)</strong>. Kurikulum adaptif, mudah dipahami, 
+            dan siap diterapkan di kelas masa depan.
           </motion.p>
 
           {/* Buttons */}
@@ -276,7 +282,7 @@ const Hero: React.FC = () => {
                 size="lg"
                 className="h-14 px-8 rounded-full text-lg shadow-lg hover:shadow-primary/25 hover:-translate-y-1 transition-all duration-300"
               >
-                Start Learning Now
+                Mulai Belajar Sekarang
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
@@ -286,7 +292,7 @@ const Hero: React.FC = () => {
                 variant="outline"
                 className="h-14 px-8 rounded-full text-lg border-2 hover:bg-muted/50 transition-all duration-300"
               >
-                View Dashboard
+                Lihat Dashboard
               </Button>
             </Link>
           </motion.div>
@@ -318,14 +324,14 @@ const Benefits: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
         <div className="max-w-2xl">
           <span className="text-primary font-bold tracking-wider uppercase text-sm">
-            Why Choose Us
+            Kenapa Memilih Tera?
           </span>
           <h2 className="text-3xl md:text-4xl font-bold mt-2 text-slate-900 leading-tight">
-            Engineered for your <br/> Professional Growth.
+            Dirancang untuk <br/> Pertumbuhan Guru Profesional.
           </h2>
         </div>
         <p className="text-muted-foreground max-w-md pb-1">
-            Our platform combines cutting-edge pedagogy with engaging interactivity to ensure you not only learn but apply.
+           Platform kami menggabungkan pedagogi modern dengan teknologi interaktif untuk memastikan Anda tidak hanya belajar, tetapi siap mengajar.
         </p>
       </div>
 
@@ -369,13 +375,13 @@ const ModulesOverview: React.FC = () => {
     <SectionWrapper bgClass="bg-slate-50/80">
       <div className="text-center mb-16 max-w-3xl mx-auto">
         <h2 className="text-primary font-bold tracking-wider uppercase text-sm mb-3">
-          Curated Learning Paths
+          Jalur Pembelajaran Terstruktur
         </h2>
         <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900">
-           Explore Our Popular Modules
+           Eksplorasi Modul Populer
         </h2>
         <p className="text-lg text-slate-600">
-          Designed by industry experts to help you bridge the gap between education and employment.
+          Disusun oleh pakar industri dan pendidikan untuk menjembatani teknologi masa depan dengan ruang kelas Anda.
         </p>
       </div>
 
@@ -430,7 +436,7 @@ const ModulesOverview: React.FC = () => {
       <div className="flex justify-center mt-12">
         <Link to="/modules">
            <Button variant="outline" size="lg" className="rounded-full px-8 border-2">
-             View All Modules
+             Lihat Semua Modul
            </Button>
         </Link>
       </div>
@@ -465,13 +471,13 @@ const CTA: React.FC = () => {
           className="relative z-10 max-w-4xl mx-auto space-y-8"
         >
           <h2 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight">
-            Ready to define your <br />
+            Siap Mencetak Talenta <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-              Future Success?
+              Digital Masa Depan?
             </span>
           </h2>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-            Join thousands of learners who are not just studying, but evolving every day. Get started for free today.
+            Bergabunglah dengan ribuan guru inovatif yang tidak hanya mengajar, tetapi berevolusi setiap hari bersama Tera. Mulai sekarang, Gratis.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
             <Link to="/login">
@@ -479,7 +485,7 @@ const CTA: React.FC = () => {
                 size="lg"
                 className="h-14 px-10 rounded-full text-lg bg-white text-slate-900 hover:bg-slate-100 shadow-xl shadow-white/5 font-bold transition-all hover:scale-105"
               >
-                Get Started Now
+                Daftar Sekarang
               </Button>
             </Link>
           </div>
@@ -494,7 +500,7 @@ const Partners: React.FC = () => {
     <div className="w-full bg-slate-50 border-t border-slate-200 py-10">
       <div className="container mx-auto px-4 text-center mb-8">
         <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">
-           Trusted by Educational Leaders & Industry Partners
+           Dipercaya oleh Pemimpin Pendidikan & Mitra Industri
         </p>
       </div>
 
@@ -503,7 +509,7 @@ const Partners: React.FC = () => {
         <div className="absolute right-0 top-0 h-full w-32 bg-gradient-to-l from-slate-50 to-transparent z-10" />
 
         <div className="flex w-full overflow-hidden">
-             <motion.div
+              <motion.div
               className="flex items-center gap-12 md:gap-24 px-12"
               animate={{ x: ["0%", "-50%"] }}
               transition={{

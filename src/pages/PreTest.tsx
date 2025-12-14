@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import { motion } from "framer-motion"; // Pastikan framer-motion terinstall
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -23,15 +23,6 @@ const containerVariants = {
     transition: {
       staggerChildren: 0.15,
     },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
   },
 };
 
@@ -149,7 +140,7 @@ const PreTest = () => {
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
       <Loader2 className="w-12 h-12 text-primary animate-spin" />
-      <p className="text-muted-foreground animate-pulse">Preparing your assessment...</p>
+      <p className="text-muted-foreground animate-pulse">Menyiapkan asesmen Anda...</p>
     </div>
   );
 
@@ -170,7 +161,7 @@ const PreTest = () => {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-primary/20 shadow-sm text-sm font-semibold text-primary mb-2"
           >
             <BrainCircuit className="w-4 h-4" />
-            <span>Skill Calibration</span>
+            <span>Kalibrasi Kemampuan</span>
           </motion.div>
           
           <motion.h1 
@@ -179,7 +170,7 @@ const PreTest = () => {
             transition={{ delay: 0.1 }}
             className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900"
           >
-            Let's Check Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600">Starting Point</span>
+            Mari Cek <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600">Titik Awalmu</span>
           </motion.h1>
           
           <motion.p 
@@ -188,8 +179,8 @@ const PreTest = () => {
             transition={{ delay: 0.2 }}
             className="text-lg text-muted-foreground max-w-2xl mx-auto"
           >
-            Answer these questions to help us personalize your learning path. 
-            If you're already a pro, we'll let you skip the basics!
+            Jawab pertanyaan berikut agar kami bisa menyesuaikan jalur belajarmu. 
+            Jika kamu sudah menguasai dasarnya, kami akan mengizinkanmu melewati materi awal!
           </motion.p>
         </div>
 
@@ -202,7 +193,6 @@ const PreTest = () => {
         >
           {questions.map((q, index) => (
             <motion.div key={q.id}> 
-                        {/* //  variants={itemVariants} */}
               <Card className="border-0 shadow-lg shadow-slate-200/50 overflow-hidden bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
                 {/* Question Header */}
                 <div className="bg-slate-100/50 px-6 py-4 border-b border-slate-100 flex gap-4 items-start">
@@ -279,11 +269,11 @@ const PreTest = () => {
             {submitting ? (
               <>
                 <Loader2 className="animate-spin mr-2 h-5 w-5"/> 
-                Analyzing Skills...
+                Menganalisis Kemampuan...
               </>
             ) : (
               <>
-                Submit Assessment
+                Kirim Jawaban
                 <Sparkles className="ml-2 h-5 w-5" />
               </>
             )}

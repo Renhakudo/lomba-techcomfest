@@ -7,7 +7,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,8 +15,13 @@ import {
   Circle,
   Lock,
   PlayCircle,
-  Notebook,
   Trophy,
+  ArrowRight,
+  BookOpen,
+  Clock,
+  BarChart,
+  Zap,
+  ChevronRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -33,84 +37,66 @@ interface Lesson {
   module_id: number;
   title: string;
   lesson_order: number;
-}
-
-interface Note {
-  id: number;
-  user_id: string | null;
-  lesson_id: number;
-  content: string;
-  created_at: string;
+  duration: string | null; 
+  difficulty_level: string | null; 
 }
 
 const LessonDetail = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [moduleTitle, setModuleTitle] = useState<string | null>(null);
   const [lessonContents, setLessonContents] = useState<LessonContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [completed, setCompleted] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [completedLessons, setCompletedLessons] = useState<
-    Record<string, number[]>
-  >({});
+  const [completedLessons, setCompletedLessons] = useState<Record<string, number[]>>({});
   const [moduleLessons, setModuleLessons] = useState<Lesson[]>([]);
   const navigate = useNavigate();
-
-  // Notes state
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [showNoteForm, setShowNoteForm] = useState(false);
-  const [noteText, setNoteText] = useState("");
-  const [notesLoading, setNotesLoading] = useState(false);
 
   useEffect(() => {
     const fetchUserAndLesson = async () => {
       setLoading(true);
-
       try {
-        // Ambil session user
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
+        const { data: { session } } = await supabase.auth.getSession();
         const uid = session?.user?.id ?? null;
         setUserId(uid);
 
-        // Ambil profiles user untuk completed lessons
         if (uid) {
-          try {
-            const { data: profileData } = await supabase
-              .from("profiles")
-              .select("xp, level, completed_lessons")
-              .eq("id", uid)
-              .single();
-
-            const completedData = profileData?.completed_lessons || {};
-            setCompletedLessons(completedData);
-          } catch (err) {
-            console.error("Error fetching profile data:", err);
-          }
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("completed_lessons")
+            .eq("id", uid)
+            .single();
+          setCompletedLessons(profileData?.completed_lessons || {});
         }
 
-        // Ambil lesson
         const { data: lessonData, error: lessonError } = await supabase
           .from("lessons")
-          .select("id, module_id, title, lesson_order")
+          .select("id, module_id, title, lesson_order, duration, difficulty_level")
           .eq("id", lessonId)
           .single();
 
         if (lessonError || !lessonData) {
-          console.error("Lesson not found:", lessonError);
+          console.error("Lesson not found");
           setLesson(null);
-          setLessonContents([]);
           setLoading(false);
           return;
         }
 
         setLesson(lessonData);
+
+        const { data: moduleData } = await supabase
+          .from("modules")
+          .select("title")
+          .eq("id", lessonData.module_id)
+          .single();
+        
+        setModuleTitle(moduleData?.title || null);
+
         const { data: moduleLessonsData } = await supabase
           .from("lessons")
-          .select("id, module_id, title, lesson_order")
+          .select("id, module_id, title, lesson_order, duration, difficulty_level")
           .eq("module_id", lessonData.module_id)
           .order("lesson_order", { ascending: true });
 
@@ -124,142 +110,38 @@ const LessonDetail = () => {
 
         setLessonContents(contentData || []);
 
-        const completedLessonsModule =
-          (session?.user &&
-            (await fetchCompletedLessonsForUser(session.user.id))) ||
-          {};
-        
-        const moduleCompletedArr =
-          completedLessonsModule[lessonData.module_id] ||
-          completedLessons[lessonData.module_id] ||
-          [];
+        const completedData = uid ? (await fetchCompletedLessonsForUser(uid)) : {};
+        const moduleCompletedArr = completedData[lessonData.module_id] || [];
         setCompleted(moduleCompletedArr.includes(lessonData.id));
 
         if (lessonData.lesson_order === 1) {
           setUnlocked(true);
         } else {
           const prevLessonOrder = lessonData.lesson_order - 1;
-          const { data: prevLesson } = await supabase
-            .from("lessons")
-            .select("id")
-            .eq("module_id", lessonData.module_id)
-            .eq("lesson_order", prevLessonOrder)
-            .single();
-
+          const prevLesson = moduleLessonsData?.find(l => l.lesson_order === prevLessonOrder);
+          
           if (prevLesson && moduleCompletedArr.includes(prevLesson.id)) {
             setUnlocked(true);
           } else {
             setUnlocked(false);
           }
         }
-
-        // fetch notes for this lesson
-        await fetchNotes(Number(lessonId));
       } catch (err) {
         console.error(err);
-        setLesson(null);
-        setLessonContents([]);
       }
-
       setLoading(false);
     };
 
     fetchUserAndLesson();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId]);
 
   const fetchCompletedLessonsForUser = async (uid: string) => {
-    try {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("completed_lessons")
-        .eq("id", uid)
-        .single();
-      return profileData?.completed_lessons || {};
-    } catch (err) {
-      console.error("Error fetching completed lessons:", err);
-      return {};
-    }
-  };
-
-  // Notes: fetch
-  const fetchNotes = async (lessonIdNum: number) => {
-    setNotesLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("lesson_notes")
-        .select("id, user_id, lesson_id, content, created_at")
-        .eq("lesson_id", lessonIdNum)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching notes:", error);
-        setNotes([]);
-      } else {
-        setNotes((data as Note[]) || []);
-      }
-    } catch (err) {
-      console.error(err);
-      setNotes([]);
-    } finally {
-      setNotesLoading(false);
-    }
-  };
-
-  // Notes: submit
-  const handleSubmitNote = async () => {
-    if (!noteText.trim()) return;
-    const tempNote: Note = {
-      id: Date.now(),
-      user_id: userId,
-      lesson_id: lesson ? lesson.id : Number(lessonId),
-      content: noteText.trim(),
-      created_at: new Date().toISOString(),
-    };
-    
-    setNoteText("");
-    setShowNoteForm(false);
-    setNotes((prev) => [tempNote, ...prev]);
-
-    if (!userId) {
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from("lesson_notes")
-        .insert({
-          user_id: userId,
-          lesson_id: lesson ? lesson.id : Number(lessonId),
-          content: tempNote.content,
-        })
-        .select()
-        .single();
-      if (error) {
-        console.error("Failed to save note:", error);
-      } else if (data) {
-        setNotes((prev) =>
-          prev.map((n) =>
-            n.id === tempNote.id
-              ? {
-                  id: data.id,
-                  user_id: data.user_id,
-                  lesson_id: data.lesson_id,
-                  content: data.content,
-                  created_at: data.created_at,
-                }
-              : n
-          )
-        );
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    const { data } = await supabase.from("profiles").select("completed_lessons").eq("id", uid).single();
+    return data?.completed_lessons || {};
   };
 
   const handleCompleteLesson = async () => {
-    if (!lesson || !userId) return;
-    if (!unlocked) return;
+    if (!lesson || !userId || !unlocked) return;
 
     try {
       const { data: profileData } = await supabase
@@ -270,168 +152,92 @@ const LessonDetail = () => {
 
       const prevCompleted = profileData?.completed_lessons || {};
       const moduleLessonsArr = prevCompleted[lesson.module_id] || [];
-      const updatedModuleLessons = Array.from(
-        new Set([...moduleLessonsArr, lesson.id])
-      );
+      
+      const updatedModuleLessons = Array.from(new Set([...moduleLessonsArr, lesson.id]));
+      const updatedCompletedLessons = { ...prevCompleted, [lesson.module_id]: updatedModuleLessons };
 
-      const updatedCompletedLessons = {
-        ...prevCompleted,
-        [lesson.module_id]: updatedModuleLessons,
-      };
-
-      await supabase
-        .from("profiles")
-        .update({
-          completed_lessons: updatedCompletedLessons,
-        })
-        .eq("id", userId);
+      await supabase.from("profiles").update({ completed_lessons: updatedCompletedLessons }).eq("id", userId);
 
       setCompleted(true);
       setCompletedLessons(updatedCompletedLessons);
-
-      const { data: nextLessonData } = await supabase
-        .from("lessons")
-        .select("id, lesson_order")
-        .eq("module_id", lesson.module_id)
-        .gt("lesson_order", lesson.lesson_order)
-        .order("lesson_order")
-        .limit(1)
-        .single();
-
-      if (nextLessonData) {
-        navigate(`/module/${lesson.module_id}/lesson/${nextLessonData.id}`);
-      } else {
-        navigate(`/module/${lesson.module_id}`);
-      }
+      goToNextLesson();
     } catch (err) {
-      console.error("Failed to complete lesson:", err);
+      console.error("Gagal menyelesaikan pelajaran:", err);
     }
   };
 
-  // --- SKELETON LOADING ---
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-        <div className="container mx-auto px-4 max-w-6xl animate-pulse">
-          {/* Header Section Skeleton */}
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              {/* Back Button Skeleton */}
-              <div className="h-9 w-24 bg-gray-200 rounded-md" />
-              
-              <div className="flex items-center gap-3 ml-4">
-                <div className="w-7 h-7 bg-gray-200 rounded-full" />
-                <div>
-                  <div className="h-8 w-48 bg-gray-200 rounded mb-2" />
-                  <div className="h-4 w-64 bg-gray-200 rounded" />
-                </div>
-              </div>
-            </div>
-            {/* Badge Skeleton */}
-            <div className="hidden sm:block h-6 w-32 bg-gray-200 rounded-full" />
-          </div>
+  const goToNextLesson = async () => {
+     if (!lesson) return;
+     const nextLesson = moduleLessons.find(l => l.lesson_order === lesson.lesson_order + 1);
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <main className="md:col-span-2 space-y-6">
-              {/* Video/Content Card Skeleton */}
-              <Card className="border-2">
-                <CardHeader>
-                  <div className="h-8 w-1/3 bg-gray-200 rounded" />
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Video Placeholder */}
-                  <div className="w-full aspect-video rounded-md bg-gray-200" />
-                  
-                  {/* Learning Outcomes Box */}
-                  <div className="border rounded-md p-4 space-y-2">
-                    <div className="h-6 w-1/4 bg-gray-200 rounded" />
-                    <div className="h-4 w-full bg-gray-200 rounded" />
-                    <div className="h-4 w-3/4 bg-gray-200 rounded" />
-                  </div>
-
-                  {/* Text Content */}
-                  <div className="space-y-2">
-                    <div className="h-4 w-full bg-gray-200 rounded" />
-                    <div className="h-4 w-full bg-gray-200 rounded" />
-                    <div className="h-4 w-5/6 bg-gray-200 rounded" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Notes Card Skeleton */}
-              <Card className="border-2">
-                <CardHeader>
-                  <div className="h-7 w-40 bg-gray-200 rounded" />
-                </CardHeader>
-                <CardContent>
-                  <div className="h-20 w-full bg-gray-200 rounded" />
-                </CardContent>
-              </Card>
-            </main>
-
-            {/* Sidebar Skeleton */}
-            <aside className="md:col-span-1">
-              <div className="sticky top-24 space-y-4">
-                <Card className="border-2 p-4">
-                  <div className="flex items-start gap-3 mb-6">
-                    <div className="w-6 h-6 bg-gray-200 rounded" />
-                    <div className="space-y-2 w-full">
-                      <div className="h-6 w-1/2 bg-gray-200 rounded" />
-                      <div className="h-4 w-1/3 bg-gray-200 rounded" />
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-6">
-                    <div className="h-2 w-full bg-gray-200 rounded-full mb-2" />
-                    <div className="h-3 w-1/3 bg-gray-200 rounded" />
-                  </div>
-
-                  {/* List Items */}
-                  <div className="space-y-3">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full bg-gray-200 shrink-0" />
-                        <div className="h-4 w-full bg-gray-200 rounded" />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Button */}
-                  <div className="mt-6 h-10 w-full bg-gray-200 rounded" />
-                </Card>
-              </div>
-            </aside>
-          </div>
-        </div>
-      </div>
-    );
+      if (nextLesson) {
+        navigate(`/module/${lesson.module_id}/lesson/${nextLesson.id}`);
+      } else {
+        navigate(`/module/${lesson.module_id}`);
+      }
   }
 
-  if (!lesson)
+  const renderFormattedContent = (text: string) => {
+    const lines = text.split('\n');
     return (
-      <div className="min-h-screen bg-gray-50 pt-24 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Lesson Not Found</h1>
-          <Link to="/modules">
-            <Button>Back to Modules</Button>
-          </Link>
+        <div className="space-y-4 text-slate-700 leading-relaxed">
+            {lines.map((line, idx) => {
+                const cleanLine = line.trim();
+                if (!cleanLine) return null;
+
+                // --- HEADING 1 (#) ---
+                if (cleanLine.startsWith('# ')) {
+                    return (
+                        <h2 key={idx} className="text-2xl md:text-3xl font-extrabold text-slate-900 mt-8 mb-4 flex items-center gap-3">
+                            <span className="w-1.5 h-8 bg-blue-700 rounded-full inline-block"></span>
+                            {cleanLine.replace('# ', '')}
+                        </h2>
+                    );
+                }
+
+                // --- HEADING 2 (##) ---
+                if (cleanLine.startsWith('## ')) {
+                    return (
+                        <h3 key={idx} className="text-lg md:text-xl font-bold text-slate-800 mt-6 mb-2 flex items-center gap-2">
+                            <span className="w-1 h-6 bg-blue-500 rounded-full inline-block"></span>
+                            {cleanLine.replace('## ', '')}
+                        </h3>
+                    );
+                }
+
+                // --- BOLD TRIGGER (**) ---
+                const parts = cleanLine.split(/(\*\*.*?\*\*)/g);
+                return (
+                    <p key={idx}>
+                        {parts.map((part, i) => {
+                            if (part.startsWith('**') && part.endsWith('**')) {
+                                return (
+                                    <span key={i} className="mx-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md font-semibold text-sm border border-blue-100 shadow-sm inline-block">
+                                        {part.slice(2, -2)}
+                                    </span>
+                                );
+                            }
+                            return part;
+                        })}
+                    </p>
+                )
+            })}
         </div>
-      </div>
     );
+  };
+
+  if (loading) return <div className="min-h-screen bg-gray-50 pt-32 text-center">Memuat...</div>;
+  if (!lesson) return <div className="min-h-screen bg-gray-50 pt-32 text-center">Pelajaran Tidak Ditemukan</div>;
 
   const moduleCompletedArr = completedLessons[lesson.module_id] || [];
   const completedCount = moduleCompletedArr.length;
   const totalCount = moduleLessons.length;
-  const progressPercent =
-    totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+  const progressPercent = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
 
   const getStatus = (l: Lesson) => {
     if (moduleCompletedArr.includes(l.id)) return "completed";
     if (l.lesson_order === 1) return "in-progress";
-    const prev = moduleLessons.find(
-      (m) => m.lesson_order === l.lesson_order - 1
-    );
+    const prev = moduleLessons.find(m => m.lesson_order === l.lesson_order - 1);
     if (prev && moduleCompletedArr.includes(prev.id)) return "in-progress";
     return "locked";
   };
@@ -439,166 +245,137 @@ const LessonDetail = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
-        return <CheckCircle2 className="w-4 h-4 text-secondary" />;
+        return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
       case "in-progress":
-        return <PlayCircle className="w-4 h-4 text-primary" />;
+        return <PlayCircle className="w-4 h-4 text-blue-500" />;
       case "locked":
-        return <Lock className="w-4 h-4 text-muted-foreground" />;
+        return <Lock className="w-4 h-4 text-slate-300" />;
       default:
-        return <Circle className="w-4 h-4 text-muted-foreground" />;
+        return <Circle className="w-4 h-4 text-slate-300" />;
     }
   };
 
-  const summary =
-    lessonContents.length > 0
-      ? lessonContents[0].content.replace(/\n+/g, " ").slice(0, 220) +
-        (lessonContents[0].content.length > 220 ? "…" : "")
-      : "";
+  const nextLesson = moduleLessons.find(l => l.lesson_order === lesson.lesson_order + 1);
 
   return (
-    // PERUBAHAN: Menyesuaikan padding dan background agar konsisten
     <div className="min-h-screen bg-gray-50 pt-24 pb-12">
       <div className="container mx-auto px-4 max-w-6xl">
-        <div className="mb-6 flex items-center justify-between gap-4">
+        
+        {/* --- HEADER --- */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link to={`/module/${lesson.module_id}`}>
-              <Button variant="ghost" className="flex items-center">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" /> Kembali
               </Button>
             </Link>
-
-            <div className="flex items-center gap-3">
-              <Notebook className="w-7 h-7 text-black" />
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold leading-tight">
-                  {lesson.title}
-                </h1>
-                {summary ? (
-                  <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                    {summary}
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Pelajari materi ini untuk meningkatkan pemahaman dan
-                    keterampilan Anda.
-                  </p>
-                )}
-              </div>
+            <div className="h-6 w-px bg-slate-300 mx-2 hidden sm:block"></div>
+            <div className="flex items-center gap-2">
+               <BookOpen className="w-5 h-5 text-blue-600 hidden sm:block" />
+               <h1 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight line-clamp-1">
+                 {moduleTitle || "Memuat Modul..."}
+               </h1>
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-4">
-            <Badge className="px-3 py-1">Lesson {lesson.lesson_order}</Badge>
-            <div className="text-sm text-muted-foreground">
-              Module progress:{" "}
-              <span className="font-semibold text-primary">
-                {progressPercent}%
-              </span>
-            </div>
+          {/* PROGRESS BAR */}
+          <div className="hidden md:flex items-center gap-4">
+             <div className="flex flex-col items-end">
+                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Progres Modul</span>
+                <div className="flex items-center gap-3">
+                    <div className="w-32 h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-blue-600 rounded-full transition-all duration-500 ease-out" 
+                            style={{ width: `${progressPercent}%` }} 
+                        />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">{progressPercent}%</span>
+                </div>
+             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <main className="md:col-span-2 space-y-6">
-            <Card className={`${!unlocked ? "opacity-60" : ""} border-2`}>
-              <CardHeader>
-                <CardTitle className="text-xl md:text-2xl">
-                  {lesson.title}
-                </CardTitle>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* --- MAIN CONTENT (KIRI) --- */}
+          <main className="lg:col-span-2 space-y-8">
+            <Card className={`${!unlocked ? "opacity-60 pointer-events-none" : ""} border-0 shadow-lg`}>
+              <CardHeader className="border-b bg-white rounded-t-xl pb-4">
+                 <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl md:text-2xl text-slate-900">
+                      {lesson.title}
+                    </CardTitle>
+                    {completed && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200">Selesai</Badge>}
+                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-6">
-                {lessonContents.length > 0 && lessonContents[0].video_url ? (
-                  <div className="w-full aspect-video rounded-md overflow-hidden bg-black shadow-inner">
+              <CardContent className="space-y-8 p-6 md:p-8">
+                {/* VIDEO PLAYER */}
+                {lessonContents.length > 0 && lessonContents[0].video_url && (
+                  <div className="w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg ring-1 ring-black/5">
                     <iframe
                       className="w-full h-full"
-                      src={lessonContents[0].video_url.replace(
-                        "watch?v=",
-                        "embed/"
-                      )}
+                      src={lessonContents[0].video_url.replace("watch?v=", "embed/")}
                       title={lesson.title}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
                   </div>
-                ) : (
-                  <div className="w-full aspect-video rounded-md bg-muted-foreground/10 flex items-center justify-center text-muted-foreground">
-                    No video available
-                  </div>
                 )}
 
-                <div className="bg-gradient-to-r from-surface to-surface-100 border rounded-md p-4 shadow-sm">
-                  <h4 className="text-lg font-semibold">Hasil Pembelajaran</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Setelah menyelesaikan pelajaran ini, Anda diharapkan dapat:
-                  </p>
-                  <ul className="mt-2 ml-4 list-disc text-sm">
-                    <li>Memahami konsep utama yang dibahas dalam pelajaran.</li>
-                    <li>
-                      Mengaplikasikan pengetahuan dasar pada contoh sederhana.
-                    </li>
-                    <li>
-                      Mengukur kemajuan melalui latihan dan menandai pelajaran
-                      sebagai selesai.
-                    </li>
-                  </ul>
-                </div>
-
+                {/* TEXT CONTENT */}
                 {lessonContents.length > 0 ? (
                   lessonContents.map((content) => (
-                    <article key={content.id} className="prose max-w-none">
-                      <CardDescription>{content.content}</CardDescription>
-                      {content.video_url && content !== lessonContents[0] ? (
-                        <div className="aspect-video w-full mt-4 rounded-md overflow-hidden">
+                    <article key={content.id} className="prose prose-slate max-w-none">
+                      {renderFormattedContent(content.content)}
+                      
+                      {/* Additional Videos */}
+                      {content.video_url && content !== lessonContents[0] && (
+                        <div className="aspect-video w-full mt-6 rounded-xl overflow-hidden shadow-md">
                           <iframe
                             className="w-full h-full"
-                            src={content.video_url.replace(
-                              "watch?v=",
-                              "embed/"
-                            )}
-                            title={`${lesson.title}-extra-${content.id}`}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            src={content.video_url.replace("watch?v=", "embed/")}
                             allowFullScreen
                           />
                         </div>
-                      ) : null}
+                      )}
                     </article>
                   ))
                 ) : (
-                  <p className="text-muted-foreground">
-                    No content available for this lesson.
-                  </p>
-                )}
-
-                {!completed && unlocked && (
-                  <div className="md:hidden">
-                    <Button
-                      className="w-full mt-2"
-                      onClick={handleCompleteLesson}
-                    >
-                      Complete Lesson & Next
-                    </Button>
+                   <div className="py-10 text-center bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                    <p className="text-muted-foreground">Belum ada materi untuk pelajaran ini.</p>
                   </div>
                 )}
 
+                {/* MOBILE BUTTON */}
+                {!completed && unlocked && (
+                  <div className="md:hidden pt-4 border-t">
+                    <Button className="w-full py-6 text-lg shadow-lg shadow-blue-500/20" onClick={handleCompleteLesson}>
+                      Selesaikan Pelajaran <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </div>
+                )}
+                
+                {/* LOCKED STATE */}
                 {!unlocked && (
-                  <p className="text-red-600 font-semibold mt-2">
-                    Lesson Locked. Complete previous lesson first.
-                  </p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 text-red-700">
+                    <Lock className="w-5 h-5" />
+                    <span className="font-semibold">Pelajaran Terkunci. Selesaikan pelajaran sebelumnya.</span>
+                  </div>
                 )}
 
+                {/* SUCCESS MESSAGE */}
                 {completed && (
-                  <div className="mt-2">
-                    <Card className="border-0 bg-transparent p-0">
-                      <CardContent className="p-4 bg-green-50 border rounded-md flex items-center gap-4">
-                        <Trophy className="w-8 h-8 text-green-600" />
+                  <div className="mt-6">
+                    <Card className="border-0 bg-transparent p-0 shadow-none">
+                      <CardContent className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                             <Trophy className="w-5 h-5 text-emerald-600" />
+                        </div>
                         <div>
-                          <div className="text-sm font-semibold text-green-700">
-                            Selamat — Pelajaran Selesai!
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Pelajaran telah ditandai selesai.
+                          <div className="font-bold text-emerald-800">Pelajaran Selesai!</div>
+                          <div className="text-sm text-emerald-600/80">
+                             Anda telah menyelesaikan materi ini. Lanjutkan ke materi berikutnya.
                           </div>
                         </div>
                       </CardContent>
@@ -608,179 +385,114 @@ const LessonDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Notes & Resources */}
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle className="text-lg">Notes & Resources</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {notesLoading ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading notes...
-                  </p>
-                ) : null}
-
-                {notes.length > 0 ? (
-                  <div className="space-y-3">
-                    {notes.map((n) => (
-                      <div
-                        key={n.id}
-                        className="p-3 bg-white border rounded-md"
-                      >
-                        <div className="text-sm whitespace-pre-wrap">
-                          {n.content}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          {n.user_id ? `Saved` : "Local"} •{" "}
-                          {new Date(n.created_at).toLocaleString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Gunakan area ini untuk menyimpan catatan pribadi, link
-                    referensi, atau file pendukung pelajaran.
-                  </p>
-                )}
-
-                {!showNoteForm ? (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowNoteForm(true)}
-                    >
-                      Add Note
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        alert("Download Materials - belum diimplementasikan.");
-                      }}
-                    >
-                      Download Materials
-                    </Button>
-                  </div>
-                ) : null}
-
-                {showNoteForm && (
-                  <div className="flex gap-2 items-start">
-                    <textarea
-                      value={noteText}
-                      onChange={(e) => setNoteText(e.target.value)}
-                      placeholder="Tulis catatan Anda di sini..."
-                      className="flex-1 min-h-[96px] p-3 border rounded-md resize-none focus:outline-none focus:ring focus:ring-primary/30"
-                    />
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        onClick={handleSubmitNote}
-                        className="whitespace-nowrap"
-                      >
-                        Kirim
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setShowNoteForm(false);
-                          setNoteText("");
-                        }}
-                      >
-                        Batal
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </main>
 
-          {/* Sidebar */}
-          <aside className="md:col-span-1">
-            <div className="sticky top-24 space-y-4">
-              <Card className="border-2 p-4">
-                <div className="flex items-start gap-3 mb-3">
-                  <Notebook className="w-6 h-6 text-black mt-1" />
-                  <div>
-                    <h3 className="text-lg font-semibold">Course Content</h3>
-                    <div className="text-sm text-muted-foreground">
-                      {totalCount} lessons
+          {/* --- SIDEBAR (KANAN) --- */}
+          <aside className="lg:col-span-1 space-y-6">
+            
+            {/* LESSON INSIGHTS CARD */}
+            <Card className="border-0 shadow-lg bg-white overflow-hidden">
+                <div className="bg-blue-600 p-4">
+                    <h3 className="font-bold text-white flex items-center gap-2">
+                        <Zap className="w-5 h-5 text-yellow-300 fill-yellow-300" /> Wawasan Pelajaran
+                    </h3>
+                </div>
+                <div className="p-4 grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="text-xs text-slate-400 uppercase font-bold mb-1">Tingkat Kesulitan</div>
+                        <div className="font-semibold text-slate-700 capitalize flex items-center gap-1">
+                            <BarChart className="w-4 h-4 text-blue-500" />
+                            {lesson.difficulty_level || "Pemula"}
+                        </div>
                     </div>
-                  </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="text-xs text-slate-400 uppercase font-bold mb-1">Durasi</div>
+                        <div className="font-semibold text-slate-700 flex items-center gap-1">
+                            <Clock className="w-4 h-4 text-orange-500" />
+                            {lesson.duration || "15 mnt"}
+                        </div>
+                    </div>
+                </div>
+            </Card>
+
+            {/* COURSE CONTENT LIST */}
+            <div className="sticky top-24">
+              <Card className="border-0 shadow-lg overflow-hidden">
+                <div className="bg-slate-900 p-4 text-white">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                        <BookOpen className="w-5 h-5" /> Konten Kursus
+                    </h3>
+                    <div className="text-slate-400 text-sm mt-1 flex justify-between items-center">
+                       <span>{completedCount}/{totalCount} selesai</span>
+                       <span className="text-xs font-mono bg-slate-800 px-2 py-0.5 rounded">{Math.round((completedCount/totalCount)*100)}%</span>
+                    </div>
+                    <div className="mt-3 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                        style={{ width: `${progressPercent}%` }}
+                        />
+                    </div>
                 </div>
 
-                {/* Progress bar */}
-                <div className="mb-3">
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {completedCount} of {totalCount} completed
-                  </div>
-                </div>
-
-                {/* Lesson list */}
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                  {moduleLessons.map((l) => {
-                    const status = getStatus(l);
-                    return (
-                      <div
-                        key={l.id}
-                        className={`flex items-center justify-between p-2 rounded-md ${
-                          status === "locked"
-                            ? "opacity-60"
-                            : "hover:bg-muted/50 cursor-pointer"
-                        }`}
-                        onClick={() => {
-                          if (status !== "locked")
-                            navigate(`/module/${l.module_id}/lesson/${l.id}`);
-                        }}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex-shrink-0">
+                <div className="p-2 bg-white max-h-[calc(100vh-400px)] overflow-y-auto">
+                  <div className="space-y-1">
+                    {moduleLessons.map((l) => {
+                      const status = getStatus(l);
+                      const isCurrent = l.id === Number(lessonId);
+                      return (
+                        <div
+                          key={l.id}
+                          onClick={() => {
+                            if (status !== "locked") navigate(`/module/${l.module_id}/lesson/${l.id}`);
+                          }}
+                          className={`
+                            relative flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group
+                            ${isCurrent ? "bg-blue-50 border border-blue-100 shadow-sm z-10" : "hover:bg-slate-50 border border-transparent"}
+                            ${status === "locked" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                          `}
+                        >
+                          {isCurrent && <div className="absolute left-0 top-2 bottom-2 w-1 bg-blue-500 rounded-r-full" />}
+                          
+                          <div className={`flex-shrink-0 ml-1 ${isCurrent ? 'scale-110' : ''}`}>
                             {getStatusIcon(status)}
                           </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">
+                          
+                          <div className="min-w-0 flex-1">
+                            <div className={`text-sm font-medium truncate ${isCurrent ? "text-blue-700" : "text-slate-700"}`}>
                               {l.title}
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              Lesson {l.lesson_order}
+                            <div className="text-xs text-slate-400 flex items-center gap-2">
+                               <span>Pelajaran {l.lesson_order}</span>
+                               <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                               <span>{l.duration || "15m"}</span>
                             </div>
                           </div>
-                        </div>
-
-                        <div className="text-xs">
-                          {status === "completed" && (
-                            <Badge className="px-2 py-0">Done</Badge>
+                          
+                          {status !== 'locked' && !isCurrent && (
+                              <ChevronRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                           )}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-
-                {/* Complete button (desktop) */}
-                <div className="mt-4">
+                
+                <div className="p-4 border-t bg-slate-50">
                   {!completed && unlocked ? (
-                    <Button className="w-full" onClick={handleCompleteLesson}>
-                      Complete Lesson & Next
+                    <Button className="w-full shadow-md shadow-blue-500/10" onClick={handleCompleteLesson}>
+                      Selesaikan & Lanjut
                     </Button>
                   ) : completed ? (
                     <Button
-                      className="w-full"
-                      variant="outline"
-                      onClick={() => navigate(-1)}
+                      className={`w-full ${nextLesson ? "bg-blue-600 hover:bg-blue-700" : "bg-white text-slate-700 border hover:bg-slate-50"}`}
+                      variant={nextLesson ? "default" : "outline"}
+                      onClick={() => nextLesson ? navigate(`/module/${lesson.module_id}/lesson/${nextLesson.id}`) : navigate(`/module/${lesson.module_id}`)}
                     >
-                      Return
+                      {nextLesson ? <>Pelajaran Berikutnya <ArrowRight className="w-4 h-4 ml-2" /></> : "Selesaikan Modul"}
                     </Button>
                   ) : (
-                    <Button className="w-full" disabled>
-                      Locked
+                    <Button className="w-full bg-slate-200 text-slate-400 hover:bg-slate-200 cursor-not-allowed">
+                      <Lock className="w-4 h-4 mr-2" /> Terkunci
                     </Button>
                   )}
                 </div>

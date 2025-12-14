@@ -29,8 +29,8 @@ interface Message {
 
 const AIAssistant = () => {
   // State untuk nama user dari database
-  const [dbUsername, setDbUsername] = useState<string>("Teman");
-  const STORAGE_KEY = 'skillup_chat_history_fullpage';
+  const [dbUsername, setDbUsername] = useState<string>("Rekan Guru");
+  const STORAGE_KEY = 'tera_chat_history_fullpage'; // Key storage baru sesuai brand
 
   // --- Ambil Nama dari Tabel Profiles ---
   useEffect(() => {
@@ -56,7 +56,7 @@ const AIAssistant = () => {
           displayName = session.user.email.split('@')[0];
         }
 
-        setDbUsername(displayName || "Teman");
+        setDbUsername(displayName || "Rekan Guru");
       }
     };
 
@@ -79,7 +79,8 @@ const AIAssistant = () => {
     return [
       {
         id: 1,
-        text: "Halo! Saya SkillUp AI Assistant. Saya di sini untuk membantu Anda mengembangkan soft skills seperti komunikasi, leadership, dan kerja tim. Ada yang bisa saya bantu hari ini?",
+        // Pesan pembuka disesuaikan dengan konteks KKA & Guru
+        text: "Halo! Saya Asisten Tera. Saya siap membantu Anda mempersiapkan materi ajar Koding & Kecerdasan Artifisial (KKA) untuk siswa. Ada topik modul atau strategi pengajaran yang ingin didiskusikan?",
         sender: 'bot',
         timestamp: new Date()
       }
@@ -120,11 +121,11 @@ const AIAssistant = () => {
         setError(null);
       } else {
         setConnectionStatus('disconnected');
-        setError('Backend tidak responsif');
+        setError('Server Tera tidak merespons');
       }
     } catch (err: any) {
       setConnectionStatus('disconnected');
-      setError('Backend tidak terhubung.');
+      setError('Koneksi ke server Tera terputus.');
     }
   };
 
@@ -148,7 +149,7 @@ const AIAssistant = () => {
     try {
       const response = await axios.post(`${BACKEND_URL}/api/chat`, {
         message: inputText,
-        sessionId: 'skillup-session-fullpage'
+        sessionId: 'tera-session-fullpage' // Session ID disesuaikan
       });
 
       let botResponse = '';
@@ -156,9 +157,9 @@ const AIAssistant = () => {
         botResponse = response.data.response;
       } else if (response.data.fallbackResponse) {
         botResponse = response.data.fallbackResponse;
-        setError(`Menggunakan fallback: ${response.data.error}`);
+        setError(`Menggunakan mode offline: ${response.data.error}`);
       } else {
-        throw new Error(response.data.error || 'Unknown error');
+        throw new Error(response.data.error || 'Kesalahan tidak diketahui');
       }
 
       const botMessage: Message = {
@@ -170,15 +171,15 @@ const AIAssistant = () => {
       setMessages(prev => [...prev, botMessage]);
       
     } catch (err: any) {
-      console.error('Error sending message:', err);
-      let errorMessage = 'Maaf, terjadi kesalahan.';
+      console.error('Gagal mengirim pesan:', err);
+      let errorMessage = 'Maaf, terjadi gangguan koneksi.';
       let detailedError = err.message;
       if (err.response?.data) {
         detailedError = err.response.data.error || err.response.data.message;
       }
       const fallbackMessage: Message = {
         id: messages.length + 2,
-        text: `Saya mengalami kesalahan: "${detailedError}".`,
+        text: `Saya mengalami kendala teknis: "${detailedError}". Silakan coba lagi nanti.`,
         sender: 'bot',
         timestamp: new Date()
       };
@@ -197,11 +198,12 @@ const AIAssistant = () => {
   };
 
   const handleQuickAction = (topic: string) => {
+    // Quick prompts disesuaikan dengan konteks Guru & KKA
     const quickMessages: Record<string, string> = {
-      'communication': 'Bagaimana cara meningkatkan kemampuan komunikasi?',
-      'leadership': 'Apa karakteristik pemimpin efektif?',
-      'time': 'Tips manajemen waktu',
-      'teamwork': 'Cara membangun kerjasama tim solid'
+      'ct_foundations': 'Jelaskan apa itu Berpikir Komputasional untuk pemula.',
+      'python_start': 'Bagaimana cara mengenalkan Python kepada siswa SMP?',
+      'ai_ethics': 'Apa contoh etika AI yang penting diajarkan di kelas?',
+      'scratch_projects': 'Ide proyek Scratch sederhana untuk siswa SD.'
     };
     setInputText(quickMessages[topic] || topic);
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -213,30 +215,27 @@ const clearChat = () => {
     text: "Semua percakapan akan hilang permanen!",
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#ef4444', // Merah (Warna danger Tailwind)
-    cancelButtonColor: '#6b7280', // Abu-abu (Netral)
+    confirmButtonColor: '#ef4444', 
+    cancelButtonColor: '#6b7280', 
     confirmButtonText: 'Ya, Hapus!',
     cancelButtonText: 'Batal',
-    reverseButtons: true // Posisi tombol dibalik biar lebih ergonomis
+    reverseButtons: true 
   }).then((result) => {
     if (result.isConfirmed) {
-      // --- LOGIKA ASLI KAMU MULAI DARI SINI ---
       localStorage.removeItem(STORAGE_KEY);
       setMessages([{
         id: 1,
-        text: `Halo, ${dbUsername}! Percakapan baru dimulai. Ada yang bisa saya bantu?`,
+        text: `Halo, ${dbUsername}! Percakapan baru dimulai. Ada yang bisa saya bantu terkait materi ajar hari ini?`,
         sender: 'bot',
         timestamp: new Date()
       }]);
       setError(null);
-      // --- LOGIKA ASLI SELESAI ---
 
-      // Feedback visual tambahan (biar makin keren)
       Swal.fire({
         icon: 'success',
         title: 'Terhapus!',
-        text: 'Chat berhasil direset.',
-        timer: 1500, // Otomatis tutup dalam 1.5 detik
+        text: 'Riwayat chat berhasil direset.',
+        timer: 1500,
         showConfirmButton: false
       });
     }
@@ -248,25 +247,18 @@ const clearChat = () => {
     return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // --- LOGIKA UTAMA UNTUK REDIRECT LINK ---
   const handleLinkClick = async (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
-    // 1. Cek apakah ini link eksternal (http/https). Jika ya, biarkan default (tab baru).
     const isExternal = url.startsWith('http') || url.startsWith('https');
     
     if (isExternal) return;
 
-    // 2. Jika link internal (modul/halaman lain dalam app), cegah navigasi default
     e.preventDefault();
 
-    // 3. Cek status login user saat ini
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
-        // Jika sudah login, navigasi langsung
         window.location.href = url;
     } else {
-        // Jika belum login, arahkan ke login dengan parameter ?redirect=
-        // encodeURIComponent penting agar URL tujuan aman dibaca browser
         const targetUrl = encodeURIComponent(url);
         window.location.href = `/login?redirect=${targetUrl}`;
     }
@@ -290,7 +282,7 @@ const clearChat = () => {
           key={match.index} 
           href={linkUrl} 
           onClick={(e) => handleLinkClick(e, linkUrl)}
-          target={isExternal ? "_blank" : "_self"} // Internal link jangan buka tab baru agar redirect mulus
+          target={isExternal ? "_blank" : "_self"} 
           rel="noopener noreferrer" 
           className={`inline-flex items-center gap-1 font-semibold underline decoration-2 underline-offset-2 transition-colors mx-1 ${
             sender === 'user' 
@@ -320,7 +312,7 @@ const clearChat = () => {
                         <Bot className="w-8 h-8 text-white" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold">SkillUp AI</h2>
+                        <h2 className="text-xl font-bold">Asisten Tera</h2>
                         <p className="text-blue-100 text-xs flex items-center gap-1.5 mt-1">
                             <span className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}/>
                             {connectionStatus === 'connected' ? 'Online' : 'Offline'}
@@ -328,7 +320,7 @@ const clearChat = () => {
                     </div>
                 </div>
                 <p className="text-sm text-blue-50 leading-relaxed">
-                    Halo, <strong>{dbUsername}</strong>! Gunakan asisten ini untuk mempertajam soft skills Anda.
+                    Halo, <strong>{dbUsername}</strong>! Saya siap membantu Anda merancang pembelajaran digital yang efektif.
                 </p>
             </div>
 
@@ -339,10 +331,10 @@ const clearChat = () => {
                     </h3>
                     <div className="grid grid-cols-1 gap-2">
                         {[
-                            { key: 'communication', label: '💬 Komunikasi Efektif', desc: 'Tips berbicara & mendengar' },
-                            { key: 'leadership', label: '👑 Jiwa Kepemimpinan', desc: 'Menjadi leader yang baik' },
-                            { key: 'time', label: '⏰ Manajemen Waktu', desc: 'Produktifitas harian' },
-                            { key: 'teamwork', label: '🤝 Kerja Sama Tim', desc: 'Kolaborasi sukses' }
+                            { key: 'ct_foundations', label: '🧠 Berpikir Komputasional', desc: 'Konsep dasar problem solving' },
+                            { key: 'python_start', label: '🐍 Python untuk Pemula', desc: 'Transisi dari blok ke teks' },
+                            { key: 'ai_ethics', label: '🤖 Etika AI di Kelas', desc: 'Dampak sosial teknologi' },
+                            { key: 'scratch_projects', label: '🎮 Proyek Kreatif', desc: 'Ide visual coding seru' }
                         ].map(({ key, label, desc }) => (
                             <button
                                 key={key}
@@ -376,7 +368,7 @@ const clearChat = () => {
             <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     <MessageSquare className="w-5 h-5 text-purple-600" />
-                    <span className="font-semibold text-gray-700">Sesi Percakapan</span>
+                    <span className="font-semibold text-gray-700">Diskusi Pembelajaran</span>
                 </div>
                 {error && (
                     <div className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-1 rounded-full text-xs font-medium">
@@ -444,7 +436,7 @@ const clearChat = () => {
                         value={inputText} 
                         onChange={e => setInputText(e.target.value)} 
                         onKeyDown={handleKeyPress} 
-                        placeholder="Ketik pesan Anda di sini... (Tekan Enter untuk kirim)" 
+                        placeholder="Ketik pertanyaan Anda di sini... (Tekan Enter untuk kirim)" 
                         className="min-h-[60px] max-h-32 resize-none pr-16 py-4 px-5 rounded-2xl border-gray-200 focus:border-blue-500 focus:ring-blue-100 bg-gray-50 focus:bg-white transition-all shadow-inner text-base" 
                         rows={1} 
                         disabled={isTyping} 
@@ -462,7 +454,7 @@ const clearChat = () => {
                 <div className="max-w-4xl mx-auto mt-2 text-center">
                     <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
                         <Sparkles className="w-3 h-3 text-purple-400" /> 
-                        SkillUp AI
+                        Ditenagai oleh Tera AI
                     </p>
                 </div>
             </div>

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
-import { TrendingUp, BookOpen, MessageCircle, Clock, Award, Zap } from "lucide-react"; // Tambah Icon
+import { TrendingUp, BookOpen, MessageCircle, Clock, Award, Zap } from "lucide-react";
 
 interface ModuleProgress {
   id: string;
@@ -21,11 +21,11 @@ const moduleColors: Record<string, string> = {
   "4": "#ff6b6b",
 };
 
-// Data Dummy untuk Skills (Bisa nanti diambil dari DB)
+// Data Dummy untuk Skills
 const earnedSkills = [
-  { name: "Comp. Thinking", color: "bg-blue-100 text-blue-700" },
-  { name: "Algorithm", color: "bg-purple-100 text-purple-700" },
-  { name: "Problem Solving", color: "bg-green-100 text-green-700" },
+  { name: "Berpikir Komputasional", color: "bg-blue-100 text-blue-700" },
+  { name: "Algoritma Dasar", color: "bg-purple-100 text-purple-700" },
+  { name: "Pemecahan Masalah", color: "bg-green-100 text-green-700" },
 ];
 
 const Dashboard = () => {
@@ -130,7 +130,7 @@ const Dashboard = () => {
   }
 
   if (!profile)
-    return <div className="p-8 text-center">Profile not found.</div>;
+    return <div className="p-8 text-center">Profil tidak ditemukan.</div>;
 
   const sortedModules = [...modulesProgress].sort((a, b) => {
     // Logic sorting tetap sama
@@ -173,24 +173,24 @@ const Dashboard = () => {
             <div className="mt-6 w-full space-y-3">
               <Link to="/modules">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
-                    Continue Learning
+                    Lanjutkan Belajar
                 </Button>
               </Link>
+              <div className="mt-6 w-full space-y-3"></div>
               <Link to="/profilepage">
                 <Button variant="outline" className="w-full">
-                  Edit Profile
+                  Edit Profil
                 </Button>
               </Link>
             </div>
 
-            {/* --- BARU: BAGIAN SKILLS / ACHIEVEMENTS --- */}
+            {/* --- BAGIAN SKILLS / PENCAPAIAN --- */}
             <div className="mt-8 w-full">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 font-semibold text-sm uppercase tracking-wider">
                     <Award className="w-4 h-4 text-orange-500" />
-                    Skills Acquired
+                    Keahlian Diraih
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    {/* Logika dummy: Jika user sudah menyelesaikan setidaknya 1 modul, tampilkan skills */}
                     {modulesDoneCount > 0 ? (
                         earnedSkills.map((skill, idx) => (
                             <span key={idx} className={`px-3 py-1 rounded-full text-xs font-bold border ${skill.color}`}>
@@ -199,7 +199,7 @@ const Dashboard = () => {
                         ))
                     ) : (
                         <div className="text-xs text-gray-400 italic text-center w-full py-2 bg-gray-50 rounded-lg border border-dashed">
-                            Complete modules to unlock skills!
+                            Selesaikan modul untuk membuka keahlian!
                         </div>
                     )}
                 </div>
@@ -213,7 +213,7 @@ const Dashboard = () => {
       {/* --- RIGHT CONTENT --- */}
       <div className="flex-1 md:ml-[360px] p-4 pt-24 pb-6 flex flex-col gap-6 md:h-screen md:overflow-hidden h-auto">
         
-        {/* TOP STATS CARDS (GRID KEMBALI JADI 2 KOLOM) */}
+        {/* TOP STATS CARDS */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-shrink-0">
           
           {/* CARD 1: MODULE PROGRESS (BIRU) */}
@@ -233,12 +233,12 @@ const Dashboard = () => {
               </div>
 
               <div className="flex-1 text-white">
-                <div className="text-xs font-medium text-blue-100 uppercase tracking-wide">Overall Progress</div>
+                <div className="text-xs font-medium text-blue-100 uppercase tracking-wide">Progres Keseluruhan</div>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-3xl font-extrabold tracking-tight">
                     {overallPercent}%
                   </span>
-                  <span className="text-sm opacity-80">Completed</span>
+                  <span className="text-sm opacity-80">Selesai</span>
                 </div>
                 
                 <div className="mt-3 bg-black/10 rounded-full h-2 w-full overflow-hidden backdrop-blur-sm border border-white/10">
@@ -248,13 +248,13 @@ const Dashboard = () => {
                   />
                 </div>
                 <div className="mt-1 text-[10px] text-blue-50 text-right">
-                    {modulesDoneCount} of {modulesTotal} modules
+                    {modulesDoneCount} dari {modulesTotal} modul
                 </div>
               </div>
             </div>
           </div>
 
-          {/* CARD 2: BARU - LEARNING HOURS (UNGU) */}
+          {/* CARD 2: JAM BELAJAR (UNGU) */}
           <div
             className="rounded-3xl overflow-hidden shadow-sm bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]
               transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-indigo-200
@@ -271,20 +271,20 @@ const Dashboard = () => {
               </div>
 
               <div className="flex-1 text-white">
-                <div className="text-xs font-medium text-indigo-100 uppercase tracking-wide">Total Learning Time</div>
+                <div className="text-xs font-medium text-indigo-100 uppercase tracking-wide">Total Waktu Belajar</div>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-3xl font-extrabold tracking-tight">
-                    {Math.floor(learningHours)}<span className="text-lg">h</span> {(learningHours % 1 * 60).toFixed(0)}<span className="text-lg">m</span>
+                    {Math.floor(learningHours)}<span className="text-lg">j</span> {(learningHours % 1 * 60).toFixed(0)}<span className="text-lg">m</span>
                   </span>
                 </div>
                 
                 <div className="mt-2 text-xs text-indigo-100/90 leading-relaxed">
-                   Great consistency! You've invested quality time in your future skills.
+                   Konsistensi luar biasa! Anda telah menginvestasikan waktu berkualitas untuk masa depan.
                 </div>
                 
                 <div className="mt-3 flex items-center gap-2">
                     <div className="px-2 py-1 rounded bg-white/20 backdrop-blur text-[10px] font-semibold text-white flex items-center gap-1">
-                        <Zap size={10} className="text-yellow-300 fill-yellow-300"/> Productive
+                        <Zap size={10} className="text-yellow-300 fill-yellow-300"/> Produktif
                     </div>
                 </div>
               </div>
@@ -292,16 +292,16 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* LEARNING PROGRESS LIST */}
+        {/* DAFTAR MODUL */}
         <Card className="shadow-md border rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden bg-white/80 backdrop-blur-sm">
           <CardHeader className="bg-white/50 z-20 border-b pb-4 p-4 px-6 flex-shrink-0 flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
               <TrendingUp className="w-5 h-5 text-blue-600" />
-              Learning Progress
+              Perkembangan Belajar
             </CardTitle>
             {/* Badge kecil info jumlah modul */}
             <span className="text-xs font-medium px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
-                {modulesTotal} Courses Available
+                {modulesTotal} Kursus Tersedia
             </span>
           </CardHeader>
 
@@ -334,11 +334,11 @@ const Dashboard = () => {
                         </span>
                         <div className="flex items-center gap-2 mt-1">
                              <span className="text-[11px] font-medium px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-center min-w-[60px]">
-                                {m.lessons_count} Lessons
+                                {m.lessons_count} Pelajaran
                             </span>
                              {m.progress === 100 && (
                                  <span className="text-[10px] flex items-center gap-1 text-green-600 font-bold">
-                                     <Award size={10} /> Completed
+                                     <Award size={10} /> Selesai
                                  </span>
                              )}
                         </div>

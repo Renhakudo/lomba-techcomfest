@@ -72,55 +72,56 @@ export default function EditProfile() {
       setProfile({ ...profile, avatar_url: img.publicUrl });
     } catch (err) {
       console.error(err);
-      alert("Error uploading avatar!");
+      alert("Gagal mengunggah avatar!");
     } finally {
       setUploading(false);
     }
   }
 
-async function updateProfile() {
-  const { data: { user } } = await supabase.auth.getUser();
+  async function updateProfile() {
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return;
+    if (!user) return;
 
-  // Tampilkan Loading Spinner sebelum proses dimulai
-  Swal.fire({
-    title: 'Menyimpan...',
-    text: 'Mohon tunggu sebentar',
-    allowOutsideClick: false,
-    didOpen: () => {
-      Swal.showLoading(); // Animasi loading bawaan SweetAlert
+    // Tampilkan Loading Spinner sebelum proses dimulai
+    Swal.fire({
+      title: 'Menyimpan...',
+      text: 'Mohon tunggu sebentar',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading(); // Animasi loading bawaan SweetAlert
+      }
+    });
+
+    try {
+      await supabase
+        .from("profiles")
+        .update({ name, username })
+        .eq("id", user.id);
+      
+      // Sukses! Ganti alert biasa dengan ini
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Profil Anda telah diperbarui.',
+        confirmButtonColor: '#4F46E5', // Ungu Tera (sesuai header)
+        confirmButtonText: 'Mantap'
+      }).then(() => {
+        // Redirect jalan setelah user klik tombol "Mantap"
+        navigate("/dashboard");
+      });
+
+    } catch (error) {
+      // Error!
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: 'Terjadi kesalahan saat memperbarui profil.',
+        confirmButtonColor: '#4F46E5'
+      });
     }
-  });
-
-  try {
-    await supabase
-      .from("profiles")
-      .update({ name, username })
-      .eq("id", user.id);
-    
-    // Sukses! Ganti alert biasa dengan ini
-    Swal.fire({
-      icon: 'success',
-      title: 'Berhasil!',
-      text: 'Profil kamu sudah diperbarui.',
-      confirmButtonColor: '#4F46E5', // Ungu SkillUp (sesuai header)
-      confirmButtonText: 'Mantap'
-    }).then(() => {
-      // Redirect jalan setelah user klik tombol "Mantap"
-      navigate("/dashboard");
-    });
-
-  } catch (error) {
-    // Error!
-    Swal.fire({
-      icon: 'error',
-      title: 'Gagal',
-      text: 'Terjadi kesalahan saat update profil.',
-      confirmButtonColor: '#4F46E5'
-    });
   }
-}
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -175,7 +176,7 @@ async function updateProfile() {
                     </div>
 
                     <div className="mt-4 text-center md:text-left">
-                        <h2 className="text-lg font-bold text-slate-900">{name || "Your Name"}</h2>
+                        <h2 className="text-lg font-bold text-slate-900">{name || "Nama Anda"}</h2>
                         <p className="text-sm text-slate-500 font-medium flex items-center justify-center md:justify-start gap-1">
                             <AtSign size={14} className="text-blue-500" />
                             {username || "username"}
@@ -188,10 +189,10 @@ async function updateProfile() {
                     <div className="bg-[#f1f5f9] p-3 rounded-xl border border-slate-200 shadow-sm">
                         <div className="flex items-center gap-2 mb-1 text-blue-800">
                             <Sparkles size={14} className="fill-blue-800" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">Profile Tip</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Tips Profil</span>
                         </div>
                         <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                            Square images work best for avatars.
+                            Gambar persegi paling cocok untuk avatar.
                         </p>
                     </div>
                 </div>
@@ -201,8 +202,8 @@ async function updateProfile() {
             <div className="md:col-span-7 p-6 md:p-8 flex flex-col justify-center bg-white">
                 
                 <div className="mb-6">
-                    <h1 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Edit Profile</h1>
-                    <p className="text-slate-500 text-sm">Update your personal details.</p>
+                    <h1 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Edit Profil</h1>
+                    <p className="text-slate-500 text-sm">Perbarui detail pribadi Anda.</p>
                 </div>
 
                 <div className="space-y-6 max-w-sm">
@@ -211,13 +212,13 @@ async function updateProfile() {
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-800 flex items-center gap-2 uppercase tracking-wide">
                             <User size={16} className="text-blue-900" />
-                            Full Name
+                            Nama Lengkap
                         </label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g. Sarah Connor"
+                            placeholder="Contoh: Sarah Connor"
                             className="w-full px-4 py-3 bg-[#f8fafc] border-2 border-slate-100 rounded-xl text-slate-900 font-medium text-sm placeholder:text-slate-400 focus:bg-white focus:border-blue-900 focus:ring-4 focus:ring-blue-900/10 outline-none transition-all duration-200 shadow-sm"
                         />
                     </div>
@@ -246,14 +247,14 @@ async function updateProfile() {
                             onClick={() => navigate("/dashboard")}
                             className="px-6 py-3 rounded-xl border-2 border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 transition-all"
                         >
-                            Cancel
+                            Batal
                         </button>
                         <button
                             onClick={updateProfile}
                             className="flex-1 px-6 py-3 rounded-xl bg-[#0f172a] text-white font-bold text-sm shadow-lg shadow-blue-900/20 hover:bg-blue-800 hover:shadow-blue-800/30 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2"
                         >
                             <Save size={18} />
-                            Save Changes
+                            Simpan Perubahan
                         </button>
                     </div>
 

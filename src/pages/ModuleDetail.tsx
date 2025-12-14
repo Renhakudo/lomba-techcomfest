@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
@@ -20,7 +21,9 @@ import {
   Sparkles,
   Zap,
   MoreVertical,
+  Download,
 } from "lucide-react";
+import jsPDF from "jspdf";
 
 interface Lesson {
   id: number;
@@ -53,6 +56,11 @@ const ModuleDetail = () => {
   const [hasTakenPretest, setHasTakenPretest] = useState(false);
   const [assignedLevel, setAssignedLevel] = useState<string | null>(null);
 
+  // State Baru: Durasi & Sertifikat
+  const [totalDuration, setTotalDuration] = useState<string>("0 Menit");
+  const [userName, setUserName] = useState<string>("");
+  const [isGeneratingCert, setIsGeneratingCert] = useState(false);
+
   useEffect(() => {
     const fetchModuleAndUser = async () => {
       setLoading(true);
@@ -62,7 +70,7 @@ const ModuleDetail = () => {
           data: { session },
         } = await supabase.auth.getSession();
         if (!session?.user) {
-          console.error("User not logged in");
+          console.error("Pengguna belum login");
           setLoading(false);
           return;
         }
@@ -74,28 +82,45 @@ const ModuleDetail = () => {
         const { data: moduleData, error: moduleError } = await supabase
           .from("modules")
           .select(
-            "id, title, description, color, lessons(id, title, duration, lesson_order, difficulty_level)"
+            "id, title, description, category, color, lessons(id, title, duration, lesson_order, difficulty_level)"
           )
           .eq("id", moduleId)
           .single();
 
         if (moduleError || !moduleData) {
-          console.error("Module not found:", moduleError);
+          console.error("Modul tidak ditemukan:", moduleError);
           setModule(null);
           setLoading(false);
           return;
         }
         setModule(moduleData as unknown as Module);
 
-        // 2. Ambil Completed Lessons dari Profile
+        // --- HITUNG TOTAL DURASI REAL ---
+        if (moduleData.lessons) {
+          let totalMinutes = 0;
+          moduleData.lessons.forEach((l: any) => {
+            // Ambil angka dari string durasi (misal: "15 Menit" -> 15)
+            const minutes = parseInt(l.duration?.replace(/\D/g, "") || "0");
+            totalMinutes += minutes;
+          });
+
+          const hours = Math.floor(totalMinutes / 60);
+          const mins = totalMinutes % 60;
+          const formattedDuration =
+            hours > 0 ? `${hours} Jam ${mins} Menit` : `${mins} Menit`;
+          setTotalDuration(formattedDuration);
+        }
+
+        // 2. Ambil Completed Lessons & Nama User dari Profile
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("completed_lessons")
+          .select("completed_lessons, name") // Tambah select 'name'
           .eq("id", uid)
           .single();
 
         const userCompleted = profileData?.completed_lessons?.[moduleId!] || [];
         setCompletedLessons(userCompleted);
+        setUserName(profileData?.name || "Peserta Didik");
 
         // 3. Ambil Status Pre-Test
         const { data: progressData } = await supabase
@@ -123,6 +148,63 @@ const ModuleDetail = () => {
     fetchModuleAndUser();
   }, [moduleId]);
 
+  // --- FUNGSI GENERATE CERTIFICATE ---
+  const handleDownloadCertificate = () => {
+    if (!module) return;
+    setIsGeneratingCert(true);
+
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "px",
+      format: [842, 595], // A4 Landscape (px approx)
+    });
+
+    // Template Sertifikat Kosong (Background)
+    const certTemplateUrl = "https://i.imgur.com/Yj8k9Hk.png"; 
+
+    const img = new Image();
+    img.src = certTemplateUrl;
+    img.crossOrigin = "Anonymous";
+
+    img.onload = () => {
+      // 1. Draw Background
+      doc.addImage(img, "PNG", 0, 0, 842, 595);
+
+      // 2. Add Name
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(48);
+      doc.setTextColor(51, 65, 85);
+      doc.text(userName, 421, 280, { align: "center" });
+
+      // 3. Add Module Title
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(24);
+      doc.setTextColor(100, 116, 139);
+      doc.text("Telah berhasil menyelesaikan modul:", 421, 330, { align: "center" });
+      
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(37, 99, 235); // Blue-600
+      doc.text(module.title, 421, 360, { align: "center" });
+
+      // 4. Add Date
+      const dateStr = new Date().toLocaleDateString("id-ID", {
+        day: "numeric", month: "long", year: "numeric"
+      });
+      doc.setFontSize(16);
+      doc.setTextColor(100);
+      doc.text(`Diselesaikan pada: ${dateStr}`, 421, 450, { align: "center" });
+
+      // 5. Save
+      doc.save(`Sertifikat-Tera-${module.title.replace(/\s+/g, '-')}.pdf`);
+      setIsGeneratingCert(false);
+    };
+
+    img.onerror = () => {
+      alert("Gagal membuat sertifikat. Silakan coba lagi.");
+      setIsGeneratingCert(false);
+    };
+  };
+
   // Helper Warna Badge Level
   const getLevelBadgeColor = (level: string) => {
     switch (level?.toLowerCase()) {
@@ -137,7 +219,7 @@ const ModuleDetail = () => {
     }
   };
 
-  // --- SKELETON LOADING (Updated Style) ---
+  // --- SKELETON LOADING ---
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 pt-24 pb-12 font-sans">
@@ -163,7 +245,7 @@ const ModuleDetail = () => {
     return (
       <div className="min-h-screen bg-slate-50 pt-24 flex flex-col items-center justify-center font-medium text-slate-500">
         <BookOpen className="w-12 h-12 mb-4 text-slate-300" />
-        Module Not Found
+        Modul Tidak Ditemukan
       </div>
     );
 
@@ -215,7 +297,7 @@ const ModuleDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pt-24 pb-20 font-sans text-slate-800 selection:bg-indigo-500 selection:text-white">
-      {/* 1. Background Pattern (Sama seperti Modules page) */}
+      {/* 1. Background Pattern */}
       <div className="fixed inset-0 h-full w-full bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none -z-10" />
 
       <div className="container mx-auto px-4 lg:px-8 max-w-6xl">
@@ -227,17 +309,15 @@ const ModuleDetail = () => {
           <div className="p-2 rounded-full bg-white border border-slate-200 mr-3 group-hover:border-slate-300 shadow-sm group-hover:shadow-md transition-all">
             <ArrowLeft className="w-4 h-4" />
           </div>
-          Back to All Modules
+          Kembali ke Semua Modul
         </Link>
 
         {/* --- HERO HEADER SECTION (Dark Theme) --- */}
         <div className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 md:p-12 mb-10 shadow-2xl shadow-slate-900/20 text-white">
-          {/* Decorative Blobs */}
           <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-600 rounded-full blur-3xl opacity-25 animate-pulse" />
           <div className="absolute bottom-0 left-0 -ml-10 -mb-10 w-64 h-64 bg-violet-600 rounded-full blur-3xl opacity-20" />
 
           <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
-            {/* Icon Large */}
             <div
               className={`w-24 h-24 rounded-[1.5rem] bg-gradient-to-br ${module.color} p-0.5 shadow-2xl shrink-0 hidden md:block`}
             >
@@ -248,17 +328,15 @@ const ModuleDetail = () => {
 
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
-                {/* Mobile Icon */}
                 <div
                   className={`w-12 h-12 rounded-xl bg-gradient-to-br ${module.color} flex md:hidden items-center justify-center shadow-lg`}
                 >
                   <BookOpen className="w-6 h-6 text-white" />
                 </div>
-                {/* Level Badge Pill */}
                 {hasTakenPretest && assignedLevel && (
                   <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm font-medium text-blue-200 shadow-inner">
                     <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
-                    Start Level:{" "}
+                    Level Awal:{" "}
                     <span className="text-white font-bold uppercase tracking-wider">
                       {assignedLevel}
                     </span>
@@ -290,11 +368,11 @@ const ModuleDetail = () => {
                       </div>
                       <div>
                         <h3 className="text-xl font-bold text-slate-900 mb-2">
-                          Personalize Your Path
+                          Personalisasi Jalur Belajar
                         </h3>
                         <p className="text-slate-500 text-sm leading-relaxed max-w-sm">
-                          Take a quick adaptive test. If you score high, we'll
-                          unlock advanced lessons automatically!
+                          Ikuti tes adaptif singkat. Jika skor Anda tinggi, kami akan 
+                          membuka materi lanjutan secara otomatis!
                         </p>
                       </div>
                     </div>
@@ -302,7 +380,7 @@ const ModuleDetail = () => {
                       onClick={() => navigate(`/module/${module.id}/pre-test`)}
                       className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-blue-600 text-white font-bold shadow-lg transition-all hover:scale-[1.02] hover:shadow-blue-500/25 shrink-0 w-full sm:w-auto"
                     >
-                      Start Pre-Test
+                      Mulai Pre-Test
                     </Button>
                   </div>
                 </div>
@@ -314,15 +392,14 @@ const ModuleDetail = () => {
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                   <MoreVertical className="w-6 h-6 text-slate-300" />
-                  Module Syllabus
+                  Silabus Modul
                 </h2>
                 <span className="px-3 py-1 rounded-lg bg-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {sortedLessons.length} Lessons
+                  {sortedLessons.length} Pelajaran
                 </span>
               </div>
 
               <div className="relative space-y-6">
-                {/* Vertical Line Connector */}
                 <div className="absolute left-[35px] top-6 bottom-6 w-[2px] bg-slate-100 hidden sm:block" />
 
                 {sortedLessons.map((lesson, index) => {
@@ -346,7 +423,6 @@ const ModuleDetail = () => {
                         }
                       `}
                     >
-                      {/* Status Icon Marker (Glassy Style) */}
                       <div
                         className={`
                           relative z-10 w-[70px] h-[70px] rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 border
@@ -357,7 +433,7 @@ const ModuleDetail = () => {
                               ? "bg-blue-600 border-blue-500 shadow-blue-500/30"
                               : "bg-white border-slate-100"
                           }
-                      `}
+                        `}
                       >
                         {status === "completed" ? (
                           skipped ? (
@@ -372,7 +448,6 @@ const ModuleDetail = () => {
                         )}
                       </div>
 
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
                           <h3
@@ -384,7 +459,6 @@ const ModuleDetail = () => {
                           >
                             {lesson.title}
                           </h3>
-                          {/* Difficulty Badge */}
                           {lesson.difficulty_level && (
                             <Badge
                               className={`w-fit h-6 text-[10px] uppercase tracking-wider font-bold shadow-none ${getLevelBadgeColor(
@@ -403,13 +477,12 @@ const ModuleDetail = () => {
                           </div>
                           {skipped && status === "completed" && (
                             <span className="text-blue-600 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded text-xs font-bold border border-blue-100">
-                              <Sparkles className="w-3 h-3" /> Auto-Skipped
+                              <Sparkles className="w-3 h-3" /> Lewati Otomatis
                             </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Arrow Action (Desktop) */}
                       {status !== "locked" && (
                         <div className="hidden sm:flex self-center w-10 h-10 rounded-full bg-slate-50 items-center justify-center text-slate-300 group-hover:bg-blue-500 group-hover:text-white transition-colors ml-2">
                           <ChevronRight className="w-5 h-5" />
@@ -424,12 +497,11 @@ const ModuleDetail = () => {
 
           {/* --- RIGHT COLUMN: STICKY SIDEBAR (4 cols) --- */}
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-28">
-            {/* Progress Card */}
             <Card className="rounded-[2rem] border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden bg-white">
               <div className="bg-slate-50/50 p-6 border-b border-slate-100 backdrop-blur-sm">
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <BarChart className="w-5 h-5 text-blue-500" />
-                  Learning Progress
+                  Progres Belajar
                 </h3>
               </div>
               <div className="p-8">
@@ -438,7 +510,7 @@ const ModuleDetail = () => {
                     {progressPercent}%
                   </span>
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                    Complete
+                    Selesai
                   </span>
                 </div>
 
@@ -451,7 +523,7 @@ const ModuleDetail = () => {
 
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm py-3 border-b border-slate-50">
-                    <span className="text-slate-500 font-medium">Lessons</span>
+                    <span className="text-slate-500 font-medium">Pelajaran</span>
                     <span className="font-bold text-slate-900">
                       {
                         sortedLessons.filter(
@@ -466,9 +538,12 @@ const ModuleDetail = () => {
                   </div>
                   <div className="flex justify-between text-sm py-3 border-b border-slate-50">
                     <span className="text-slate-500 font-medium">
-                      Est. Time
+                      Estimasi Waktu
                     </span>
-                    <span className="font-bold text-slate-900">~45 Mins</span>
+                    {/* UPDATE: Durasi Real */}
+                    <span className="font-bold text-slate-900">
+                      ~{totalDuration}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -487,13 +562,23 @@ const ModuleDetail = () => {
                       <Trophy className="w-7 h-7 text-yellow-300 fill-yellow-300" />
                     </div>
                     <h4 className="font-bold text-lg mb-1">
-                      Certificate Unlocked!
+                      Sertifikat Terbuka!
                     </h4>
                     <p className="text-white/80 text-sm mb-4">
-                      You've mastered this module.
+                      Selamat! Anda telah menguasai modul ini.
                     </p>
-                    <Button className="w-full bg-white text-emerald-600 hover:bg-emerald-50 font-bold rounded-xl shadow-lg border-0">
-                      Download Certificate
+                    <Button
+                      onClick={handleDownloadCertificate}
+                      disabled={isGeneratingCert}
+                      className="w-full bg-white text-emerald-600 hover:bg-emerald-50 font-bold rounded-xl shadow-lg border-0"
+                    >
+                      {isGeneratingCert ? (
+                        "Memproses..."
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Download className="w-4 h-4" /> Unduh Sertifikat
+                        </span>
+                      )}
                     </Button>
                   </div>
                 ) : (
@@ -502,7 +587,7 @@ const ModuleDetail = () => {
                       <Trophy className="w-5 h-5 text-slate-400" />
                     </div>
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">
-                      Complete to unlock certificate
+                      Selesaikan modul untuk klaim sertifikat
                     </p>
                   </div>
                 )}

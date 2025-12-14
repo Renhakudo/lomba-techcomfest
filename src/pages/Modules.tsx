@@ -13,7 +13,6 @@ import {
   Zap,
   Target,
   Search,
-  Filter,
   Check,
 } from "lucide-react";
 
@@ -33,13 +32,13 @@ interface Module {
 // Helper untuk generate poin materi dummy (karena di DB belum ada)
 const generateTopics = (title: string, category: string) => {
   const t = title.toLowerCase();
-  if (t.includes("python")) return ["Syntax Dasar", "Loops & Functions", "Data Structures"];
-  if (t.includes("html") || t.includes("web")) return ["Structure HTML5", "CSS Styling", "Responsive Layout"];
-  if (t.includes("ai") || t.includes("machine")) return ["Konsep Dasar AI", "Model Training", "Prompt Engineering"];
-  if (t.includes("scratch") || t.includes("visual")) return ["Block Logic", "Animation", "Interactive Games"];
-  if (t.includes("computational") || t.includes("berpikir")) return ["Decomposition", "Pattern Recognition", "Algorithmic Design"];
-  if (t.includes("security") || t.includes("siber")) return ["Data Privacy", "Phishing Awareness", "Secure Passwords"];
-  return ["Fundamental Concepts", "Practical Exercises", "Final Project"];
+  if (t.includes("python")) return ["Sintaks Dasar", "Pengulangan & Fungsi", "Struktur Data"];
+  if (t.includes("html") || t.includes("web")) return ["Struktur HTML5", "Styling CSS", "Layout Responsif"];
+  if (t.includes("ai") || t.includes("machine")) return ["Konsep Dasar AI", "Melatih Model", "Prompt Engineering"];
+  if (t.includes("scratch") || t.includes("visual")) return ["Logika Blok", "Animasi Karakter", "Game Interaktif"];
+  if (t.includes("computational") || t.includes("berpikir")) return ["Dekomposisi Masalah", "Pengenalan Pola", "Desain Algoritma"];
+  if (t.includes("security") || t.includes("siber")) return ["Privasi Data", "Waspada Phishing", "Kata Sandi Aman"];
+  return ["Konsep Fundamental", "Latihan Praktis", "Proyek Akhir"];
 };
 
 const Modules = () => {
@@ -48,7 +47,7 @@ const Modules = () => {
   
   // --- STATE UNTUK SEARCH & FILTER ---
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState("Semua");
 
   // Stats State
   const [stats, setStats] = useState({
@@ -110,7 +109,7 @@ const Modules = () => {
           totalMinutesAll += totalMinutes;
           const hours = Math.floor(totalMinutes / 60);
           const mins = totalMinutes % 60;
-          const durationStr = hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
+          const durationStr = hours > 0 ? `${hours}j ${mins}m` : `${mins} menit`;
 
           return {
             ...mod,
@@ -146,13 +145,13 @@ const Modules = () => {
   // 1. Ambil list kategori unik untuk tombol filter
   const categories = useMemo(() => {
     const cats = modules.map(m => m.category);
-    return ["All", ...new Set(cats)];
+    return ["Semua", ...new Set(cats)];
   }, [modules]);
 
   // 2. Filter modules berdasarkan search & category
   const filteredModules = modules.filter((mod) => {
     const matchesSearch = mod.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || mod.category === selectedCategory;
+    const matchesCategory = selectedCategory === "Semua" || mod.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -202,36 +201,36 @@ const Modules = () => {
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mb-6 text-sm font-medium text-blue-200">
                 <Sparkles className="w-4 h-4 text-yellow-300" />
-                <span>Interactive Learning Dashboard</span>
+                <span>Dashboard Pembelajaran Interaktif</span>
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 leading-tight">
-                Upgrade Your <br />
+                Tingkatkan Kompetensi <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-                  Future Skills.
+                  Digital Anda.
                 </span>
               </h1>
               <p className="text-slate-400 text-lg max-w-lg leading-relaxed">
-                Track your real progress. Complete modules to unlock new abilities.
+                Pantau progres nyata Anda. Selesaikan modul untuk membuka keahlian baru di dunia pendidikan.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-5 rounded-2xl min-w-[140px]">
                 <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">
-                  <Trophy className="w-4 h-4 text-yellow-400" /> Completed
+                  <Trophy className="w-4 h-4 text-yellow-400" /> Selesai
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-bold text-white">{stats.completed}</span>
-                  <span className="text-sm text-slate-500">/ {stats.enrolled} Enrolled</span>
+                  <span className="text-sm text-slate-500">/ {stats.enrolled} Terdaftar</span>
                 </div>
               </div>
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-5 rounded-2xl min-w-[140px]">
                 <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">
-                  <BarChart3 className="w-4 h-4 text-blue-400" /> Active
+                  <BarChart3 className="w-4 h-4 text-blue-400" /> Aktif
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-bold text-white">{stats.inProgress}</span>
-                  <span className="text-sm text-slate-500">Learning</span>
+                  <span className="text-sm text-slate-500">Belajar</span>
                 </div>
               </div>
             </div>
@@ -266,7 +265,7 @@ const Modules = () => {
                 </div>
                 <input
                     type="text"
-                    placeholder="Search modules..."
+                    placeholder="Cari modul..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
@@ -314,12 +313,12 @@ const Modules = () => {
                            {/* Status Badge */}
                           {module.progress > 0 && module.progress < 100 && (
                             <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Zap className="w-3 h-3" /> Active
+                              <Zap className="w-3 h-3" /> Aktif
                             </span>
                           )}
                           {module.progress === 0 && (
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Target className="w-3 h-3" /> Start
+                              <Target className="w-3 h-3" /> Mulai
                             </span>
                           )}
                         </div>
@@ -336,7 +335,7 @@ const Modules = () => {
                       
                       {/* Topics List (Detail tambahan) */}
                       <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">What you'll learn:</p>
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Yang akan dipelajari:</p>
                           <ul className="space-y-1">
                               {module.topics.map((topic, idx) => (
                                   <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
@@ -353,7 +352,7 @@ const Modules = () => {
                     <div className="flex items-center justify-between text-xs font-semibold text-slate-400 mb-4">
                       <div className="flex items-center gap-4">
                         <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm">
-                          <LayoutGrid className="w-3.5 h-3.5 text-slate-500" /> {module.lessons_count} Lessons
+                          <LayoutGrid className="w-3.5 h-3.5 text-slate-500" /> {module.lessons_count} Pelajaran
                         </span>
                         <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm">
                           <Clock className="w-3.5 h-3.5 text-slate-500" /> {module.duration_string}
@@ -392,7 +391,7 @@ const Modules = () => {
                               : "bg-white text-slate-700 border border-slate-200 hover:border-blue-300 hover:text-blue-600"
                           }`}
                       >
-                        {module.progress === 100 ? "Review Module" : module.progress > 0 ? "Continue Lesson" : "Start Learning"}
+                        {module.progress === 100 ? "Ulas Modul" : module.progress > 0 ? "Lanjutkan Belajar" : "Mulai Belajar"}
                         {module.progress !== 100 && (
                           <ArrowRight className={`w-4 h-4 transition-transform ${module.progress === 0 ? "group-hover/btn:translate-x-1" : ""}`} />
                         )}
@@ -410,13 +409,13 @@ const Modules = () => {
                 <div className="bg-slate-100 p-4 rounded-full mb-4">
                     <Search className="w-8 h-8 text-slate-400" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-700">No modules found</h3>
-                <p className="text-slate-500">Try adjusting your search or filter to find what you're looking for.</p>
+                <h3 className="text-lg font-bold text-slate-700">Modul tidak ditemukan</h3>
+                <p className="text-slate-500">Coba sesuaikan pencarian atau filter Anda untuk menemukan modul yang dicari.</p>
                 <button 
-                    onClick={() => {setSearchQuery(""); setSelectedCategory("All")}}
+                    onClick={() => {setSearchQuery(""); setSelectedCategory("Semua")}}
                     className="mt-4 text-blue-600 font-semibold hover:underline"
                 >
-                    Clear Filters
+                    Hapus Filter
                 </button>
             </div>
         )}
