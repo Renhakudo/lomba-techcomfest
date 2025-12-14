@@ -55,7 +55,7 @@ const Layout = ({ children }: LayoutProps) => {
       {!hideFooter && (
         <footer className="bg-card border-t border-border py-8 mt-20">
           <div className="container mx-auto px-4 text-center text-muted-foreground">
-            <p>© 2025 SkillUp. Empowering students with essential soft skills.</p>
+            <p>© 2025 Tera. Teacher Education for Responsive Adaptive learning.</p>
           </div>
         </footer>
       )}
